@@ -5,7 +5,7 @@ import Footer from '../components/web/Footer';
 
 const WebLayout = () => {
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-purple-100 selection:text-purple-900">
+    <div className="min-h-screen bg-white">
       <Navbar />
       <main>
         <Outlet />

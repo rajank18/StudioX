@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -24,14 +26,14 @@ const Navbar = () => {
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? 'bg-white/80 backdrop-blur-md shadow-sm py-4'
-          : 'bg-transparent py-6'
+          ? 'bg-white/90 backdrop-blur-md shadow-sm py-4'
+          : 'bg-white/80 backdrop-blur-md py-5'
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-        <a href="#" className="text-2xl font-bold text-gray-900">
+        <button onClick={() => navigate('/')} className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-emerald-600 transition-colors">
           StudioX
-        </a>
+        </button>
 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-8">
@@ -44,6 +46,12 @@ const Navbar = () => {
               {link.name}
             </a>
           ))}
+          <button 
+            onClick={() => navigate('/sign-in')}
+            className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            Get Started
+          </button>
         </div>
 
         {/* Mobile Menu Button */}

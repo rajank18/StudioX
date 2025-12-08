@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Scissors, Type, MicOff, FileText, Sparkles, 
   VolumeX, Gauge, Image as ImageIcon, Crop, 
   BookOpen, Download, Layout, Check, 
   Section
 } from 'lucide-react';
-import Navbar from '../components/web/Navbar';
 
 // Animation variants
 const fadeInUp = {
@@ -80,6 +80,7 @@ const PricingCard = ({ name, price, period, features, isPopular }) => (
 );
 
 const LandingPage = () => {
+  const navigate = useNavigate();
   const features = [
     { icon: Scissors, title: "AI Reel Cutter", description: "Automatically turn long videos into engaging shorts." },
     { icon: Type, title: "Auto Subtitles", description: "Generate accurate captions in seconds." },
@@ -97,8 +98,6 @@ const LandingPage = () => {
 
   return (
     <div className="overflow-hidden bg-white">
-      <Navbar />
-      
       {/* Hero Section */}
       <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-gradient-to-b from-gray-50 to-white">
         {/* Subtle Pattern Background */}
@@ -129,10 +128,16 @@ const LandingPage = () => {
             </motion.p>
             
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button className="group relative w-full sm:w-auto px-8 py-4 rounded-lg bg-emerald-600 text-white font-semibold text-base overflow-hidden shadow-lg hover:shadow-xl hover:bg-emerald-700 transition-all duration-300">
+              <button 
+                onClick={() => navigate('/sign-up')}
+                className="group relative w-full sm:w-auto px-8 py-4 rounded-lg bg-emerald-600 text-white font-semibold text-base overflow-hidden shadow-lg hover:shadow-xl hover:bg-emerald-700 transition-all duration-300"
+              >
                 Start for Free
               </button>
-              <button className="relative w-full sm:w-auto px-8 py-4 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-base hover:bg-gray-50 hover:border-gray-400 transition-all duration-300">
+              <button 
+                onClick={() => navigate('/sign-in')}
+                className="relative w-full sm:w-auto px-8 py-4 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-base hover:bg-gray-50 hover:border-gray-400 transition-all duration-300"
+              >
                 Get a Demo
               </button>
             </motion.div>

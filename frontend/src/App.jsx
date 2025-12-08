@@ -1,11 +1,12 @@
+import { BrowserRouter } from 'react-router-dom'
 import './App.css'
-import LandingPage from './pages/LandingPage'
+import Navigation from './routes/Navigation'
 
 function App() {
   return (
-    <div className="min-h-screen bg-white">
-      <LandingPage />
-    </div>
+    <BrowserRouter>
+      <Navigation />
+    </BrowserRouter>
   )
 }
 
