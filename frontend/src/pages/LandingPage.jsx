@@ -45,7 +45,7 @@ const PricingCard = ({ name, price, period, features, isPopular }) => (
     variants={fadeInUp}
     className={`relative p-8 rounded-2xl border-2 transition-all duration-300 ${
       isPopular 
-        ? 'bg-emerald-600 border-emerald-600 shadow-xl shadow-emerald-600/20' 
+        ? 'bg-gray-800 border-gray-100 shadow-xl shadow-gray-700/30' 
         : 'bg-white border-gray-200 hover:border-emerald-600 hover:shadow-lg'
     }`}
   >
@@ -72,7 +72,7 @@ const PricingCard = ({ name, price, period, features, isPopular }) => (
     <button className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${
       isPopular 
         ? 'bg-white text-emerald-600 hover:bg-emerald-50' 
-        : 'bg-emerald-600 text-white hover:bg-emerald-700'
+        : 'bg-gray-800 text-white hover:bg-emerald-700'
     }`}>
       Get Started
     </button>
@@ -99,7 +99,7 @@ const LandingPage = () => {
   return (
     <div className="overflow-hidden bg-white">
       {/* Hero Section */}
-      <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-gradient-to-b from-gray-50 to-white">
+      <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-gradient-to-b from-gray-100 to-gray-800">
         {/* Subtle Pattern Background */}
         <div className="absolute inset-0 opacity-40">
           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
@@ -112,31 +112,31 @@ const LandingPage = () => {
             variants={staggerContainer}
             className="max-w-4xl mx-auto"
           >
-            <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200">
-              <div className="w-2 h-2 rounded-full bg-emerald-600" />
-              <span className="text-emerald-700 text-sm font-medium">AI-Powered Video Studio</span>
+            <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-gray-50 ">
+              <div className="w-2 h-2 rounded-full bg-gray-800" />
+              <span className="text-black text-sm font-medium">AI-Powered Video Studio</span>
             </motion.div>
             
-            <motion.h1 variants={fadeInUp} className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 tracking-tight mb-6 leading-tight">
+            <motion.h1 variants={fadeInUp} className="text-5xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-6 leading-tight">
               One tool to manage
               <br />
               videos and your content
             </motion.h1>
             
-            <motion.p variants={fadeInUp} className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+            <motion.p variants={fadeInUp} className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
               StudioX helps legal teams work faster, smarter and more efficiently, delivering top visibility and data-driven insights to mitigate risk and ensure compliance.
             </motion.p>
             
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button 
                 onClick={() => navigate('/sign-up')}
-                className="group relative w-full sm:w-auto px-8 py-4 rounded-lg bg-emerald-600 text-white font-semibold text-base overflow-hidden shadow-lg hover:shadow-xl hover:bg-emerald-700 transition-all duration-300"
+                className="group relative w-full sm:w-auto px-8 py-4 rounded-lg bg-gray-900 text-white font-semibold text-base overflow-hidden shadow-lg hover:shadow-xl hover:bg-gray-800 cursor-pointer transition-all duration-300"
               >
                 Start for Free
               </button>
               <button 
                 onClick={() => navigate('/sign-in')}
-                className="relative w-full sm:w-auto px-8 py-4 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-base hover:bg-gray-50 hover:border-gray-400 transition-all duration-300"
+                className="relative w-full sm:w-auto px-8 py-4 rounded-lg bg-white border-2 cursor-pointer border-gray-300 text-gray-700 font-semibold text-base hover:bg-gray-50 hover:border-gray-400 transition-all duration-300"
               >
                 Get a Demo
               </button>
@@ -159,16 +159,16 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-24 bg-white relative">
+      <section id="features" className="py-24 bg-gray-800 relative">
         <div className="max-w-7xl mx-auto px-6 relative">
           <div className="text-center max-w-3xl mx-auto mb-20">
             <div className="inline-block px-4 py-1.5 rounded-full bg-gray-100 text-gray-700 text-sm font-medium mb-4">
               StudioX FEATURES
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-200 mb-4 tracking-tight">
               Latest advanced technologies to ensure everything you needs
             </h2>
-            <p className="text-gray-600 text-lg font-light">
+            <p className=" text-gray-400 text-lg ">
               Maximize your team's productivity and security without affordability, user-friendly contract management system.
             </p>
           </div>
@@ -188,13 +188,13 @@ const LandingPage = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-gradient-to-b from-white to-gray-50 relative">
+      <section id="pricing" className="py-24 bg-gradient-to-b from-gray-800 to-gray-50 relative">
         <div className="max-w-7xl mx-auto px-6 relative">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-block px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium mb-4">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-gray-50 text-black text-sm font-medium mb-4">
               PRICING
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-200 mb-4 tracking-tight">
               Choose Your Plan
             </h2>
             <p className="text-gray-600 text-lg font-light">
@@ -259,57 +259,10 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="py-24 bg-white relative overflow-hidden border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 relative">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <div className="inline-block px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium mb-6">
-                CONTACT US
-              </div>
-              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight leading-tight">
-                Don't replace,<br />Integrate.
-              </h2>
-              <p className="text-gray-600 text-lg leading-relaxed mb-6 font-light">
-                We understand the frustration of managing multiple tools and complicated workflows. StudioX brings everything together in one seamless platform.
-              </p>
-              <p className="text-gray-600 text-lg leading-relaxed mb-8 font-light">
-                That's why we integrate with the tools you already use in your day-to-day work.
-              </p>
-              <button className="px-6 py-3 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition-all duration-300 flex items-center gap-2">
-                All Integrations
-                <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
-              </button>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="relative"
-            >
-              <div className="relative bg-gray-900 p-8 rounded-2xl shadow-2xl">
-                <div className="grid grid-cols-4 gap-4">
-                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((i) => (
-                    <div key={i} className="w-14 h-14 bg-white rounded-xl shadow-md flex items-center justify-center">
-                      <div className="w-8 h-8 bg-gray-200 rounded-lg" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
+      
 
       {/* Why StudioX Section */}
-      <section id="why" className="py-24 bg-gray-50 text-gray-900 relative overflow-hidden border-t border-gray-200">
+      <section id="why" className="py-24 bg-gradient-to-b from-gray-50 to-gray-50 text-gray-900 relative overflow-hidden  border-gray-200">
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">Why StudioX?</h2>
@@ -339,9 +292,9 @@ const LandingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-gray-50">
         <div className="max-w-5xl mx-auto px-6 text-center">
-          <div className="bg-emerald-600 rounded-2xl p-12 md:p-20 text-white relative overflow-hidden shadow-2xl">
+          <div className="bg-gray-800 rounded-2xl p-12 md:p-20 text-white relative overflow-hidden shadow-2xl">
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] bg-[size:32px_32px]" />
             
             <div className="relative z-10">
@@ -359,58 +312,9 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="py-16 bg-gray-900 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div className="md:col-span-1">
-              <h3 className="text-xl font-bold text-white mb-4">StudioX</h3>
-              <p className="text-gray-400 text-sm mb-4">AI-Powered Video Studio for modern creators</p>
-              <div className="flex gap-4">
-                <a href="#" className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
-                  <span className="text-sm">𝕏</span>
-                </a>
-                <a href="#" className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
-                  in
-                </a>
-              </div>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Enterprise</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Customers</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Community</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Resources</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Legal</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="pt-8 border-t border-gray-800 text-center text-gray-500 text-sm">
-            © 2025 StudioX. All rights reserved.
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
 
 export default LandingPage;
+  
