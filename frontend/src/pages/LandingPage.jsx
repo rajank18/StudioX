@@ -31,8 +31,8 @@ const FeatureCard = ({ icon: Icon, title, description }) => (
     className="relative p-6 rounded-2xl bg-gray-50 border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 group"
   >
     <div className="relative z-10">
-      <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-emerald-600 transition-colors duration-300 shadow-sm">
-        <Icon className="text-gray-700 group-hover:text-emerald-600 transition-colors duration-300" size={22} strokeWidth={2} />
+      <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-[#ff914c] transition-colors duration-300 shadow-sm">
+        <Icon className="text-gray-700 group-hover:text-[#ff914c] transition-colors duration-300" size={22} strokeWidth={2} />
       </div>
       <h3 className="text-base font-semibold text-gray-900 mb-2 tracking-tight">{title}</h3>
       <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
@@ -46,11 +46,11 @@ const PricingCard = ({ name, price, period, features, isPopular }) => (
     className={`relative p-8 rounded-2xl border-2 transition-all duration-300 ${
       isPopular 
         ? 'bg-gray-800 border-gray-100 shadow-xl shadow-gray-700/30' 
-        : 'bg-white border-gray-200 hover:border-emerald-600 hover:shadow-lg'
+        : 'bg-white border-gray-200 hover:border-[#ff914c]hover:shadow-lg'
     }`}
   >
     {isPopular && (
-      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-emerald-700 text-white text-sm font-semibold rounded-full">
+      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#ff914c] text-white text-sm font-semibold rounded-full">
         Most Popular
       </div>
     )}
@@ -58,21 +58,21 @@ const PricingCard = ({ name, price, period, features, isPopular }) => (
       <h3 className={`text-xl font-bold mb-2 ${isPopular ? 'text-white' : 'text-gray-900'}`}>{name}</h3>
       <div className="flex items-baseline gap-1">
         <span className={`text-4xl font-bold ${isPopular ? 'text-white' : 'text-gray-900'}`}>{price}</span>
-        {period && <span className={`text-base ${isPopular ? 'text-emerald-100' : 'text-gray-600'}`}>/{period}</span>}
+        {period && <span className={`text-base ${isPopular ? 'text-orange-100' : 'text-gray-600'}`}>/{period}</span>}
       </div>
     </div>
     <ul className="space-y-3 mb-8">
       {features.map((feature, idx) => (
         <li key={idx} className="flex items-start gap-3">
-          <Check className={`mt-0.5 flex-shrink-0 ${isPopular ? 'text-emerald-200' : 'text-emerald-600'}`} size={18} strokeWidth={2.5} />
-          <span className={`text-sm ${isPopular ? 'text-emerald-50' : 'text-gray-700'}`}>{feature}</span>
+          <Check className={`mt-0.5 flex-shrink-0 ${isPopular ? 'text-orange-200' : 'text-[#ff914c]'}`} size={18} strokeWidth={2.5} />
+          <span className={`text-sm ${isPopular ? 'text-orange-50' : 'text-gray-700'}`}>{feature}</span>
         </li>
       ))}
     </ul>
     <button className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${
       isPopular 
-        ? 'bg-white text-emerald-600 hover:bg-emerald-50' 
-        : 'bg-gray-800 text-white hover:bg-emerald-700'
+        ? 'bg-white text-[#ff914c] hover:bg-orange-50' 
+        : 'bg-gray-800 text-white hover:bg-[#ff914c]'
     }`}>
       Get Started
     </button>
@@ -99,9 +99,9 @@ const LandingPage = () => {
   return (
     <div className="overflow-hidden bg-white">
       {/* Hero Section */}
-      <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-gradient-to-b from-gray-100 to-gray-800">
+      <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-gradient-to-b from-[#fff8e8] to-gray-800">
         {/* Subtle Pattern Background */}
-        <div className="absolute inset-0 opacity-40">
+        <div className="absolute inset-0 opacity-80">
           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
         </div>
 
@@ -188,7 +188,7 @@ const LandingPage = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-gradient-to-b from-gray-800 to-gray-50 relative">
+      <section id="pricing" className="py-24 bg-gray-800 relative">
         <div className="max-w-7xl mx-auto px-6 relative">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <div className="inline-block px-4 py-1.5 rounded-full bg-gray-50 text-black text-sm font-medium mb-4">
@@ -197,7 +197,7 @@ const LandingPage = () => {
             <h2 className="text-3xl md:text-5xl font-bold text-gray-200 mb-4 tracking-tight">
               Choose Your Plan
             </h2>
-            <p className="text-gray-600 text-lg font-light">
+            <p className="text-gray-400 text-lg">
               Simple, transparent pricing for teams of all sizes
             </p>
           </div>
@@ -262,11 +262,11 @@ const LandingPage = () => {
       
 
       {/* Why StudioX Section */}
-      <section id="why" className="py-24 bg-gradient-to-b from-gray-50 to-gray-50 text-gray-900 relative overflow-hidden  border-gray-200">
+      <section id="why" className="py-24 bg-gradient-to-b from-gray-800 to-gray-50 text-gray-900 relative overflow-hidden  border-gray-200">
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">Why StudioX?</h2>
-            <p className="text-gray-600 text-lg font-light">Built for speed, quality, and simplicity.</p>
+            <h2 className="text-3xl md:text-5xl text-gray-200 font-bold mb-4 tracking-tight">Why StudioX?</h2>
+            <p className="text-gray-400 text-lg ">Built for speed, quality, and simplicity.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -281,7 +281,7 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15 }}
-                className="p-8 rounded-2xl bg-white border-2 border-gray-200 hover:border-emerald-600 hover:shadow-lg transition-all duration-300"
+                className="p-8 rounded-2xl bg-white border-2 border-gray-200 hover:border-[#ff914c] hover:shadow-lg transition-all duration-300"
               >
                 <h3 className="text-xl font-semibold mb-3 text-gray-900">{item.title}</h3>
                 <p className="text-gray-600 leading-relaxed text-base font-light">{item.desc}</p>
@@ -292,17 +292,17 @@ const LandingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-24 bg-gradient-to-b from-gray-50 to-[#fcfcf3] relative">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <div className="bg-gray-800 rounded-2xl p-12 md:p-20 text-white relative overflow-hidden shadow-2xl">
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] bg-[size:32px_32px]" />
             
             <div className="relative z-10">
               <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Ready to Create?</h2>
-              <p className="text-emerald-50 text-lg mb-10 max-w-2xl mx-auto font-light">
+              <p className="text-orange-100 text-lg mb-10 max-w-2xl mx-auto font-light">
                 Join thousands of creators who are making professional videos without the hassle.
               </p>
-              <button className="group relative px-10 py-4 bg-white text-emerald-600 rounded-lg font-semibold text-base overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-emerald-50">
+              <button className="group relative px-10 py-4 bg-white text-[#ff914c] rounded-lg font-semibold text-base overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-orange-50">
                 <span className="relative inline-flex items-center gap-2">
                   Get Started Free
                   <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
