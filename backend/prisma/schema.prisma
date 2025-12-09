@@ -1,0 +1,97 @@
+// ========================================================
+//               AI VIDEO STUDIO — PRISMA SCHEMA
+// ========================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================================
+//                       PLAN MODEL
+//  - Admin-defined plans: free, standard, advanced
+//  - Controls monthly credits & features
+// ========================================================
+model Plan {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  monthlyCredits Int       // 500 for Standard, etc.
+  isUnlimited    Boolean   // true for Advanced plan
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  users          User[]
+}
+
+// ========================================================
+//                       USER MODEL
+//  - Clerk-authenticated user
+//  - currentCredits renew every month (cron job)
+// ========================================================
+model User {
+  id               String   @id              // Clerk userId
+  email            String   @unique
+  planId           String?
+  plan             Plan?     @relation(fields: [planId], references: [id])
+  currentCredits   Int       @default(0)
+  creditResetAt    DateTime? // next monthly credit reset timestamp
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  usageLogs        UsageLog[]
+  aiTasks          AiTask[]
+  transactions     Transaction[]
+}
+
+// ========================================================
+//                    USAGE LOG MODEL
+//  - For recording how many credits each action used
+//  - Useful for analytics, billing, fraud checks
+// ========================================================
+model UsageLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+
+  feature    String   // e.g., "ai_video", "subtitle_generator"
+  creditsUsed Int
+  createdAt  DateTime @default(now())
+}
+
+// ========================================================
+//                    AI TASK MODEL
+//  - Stores long-running jobs (AI video, subtitle AI, etc.)
+//  - Useful for queue + retry + status tracking
+// ========================================================
+model AiTask {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  type        String     // e.g. "story_gen", "subtitle", "reel_cut"
+  status      String     @default("pending") // pending, processing, done, failed
+  inputData   Json?
+  outputData  Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// ========================================================
+//                  TRANSACTION MODEL
+//  - For logging credits added, consumed, or refunded
+// ========================================================
+model Transaction {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+
+  type         String    // "credit_add", "credit_use", "refund"
+  amount       Int       // +500 for monthly add, -20 for use
+  description  String?
+  createdAt    DateTime  @default(now())
+}

@@ -1,0 +1,25 @@
+{
+  "name": "studiox-backend",
+  "version": "1.0.0",
+  "description": "AI Video Editing Platform Backend",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:push": "prisma db push"
+  },
+  "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
+    "@prisma/client": "^6.15.0",
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.0",
+    "node-cron": "^4.2.1",
+    "prisma": "^6.15.0"
+  },
+  "devDependencies": {}
+}
