@@ -25,10 +25,10 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={` z-50 transition-all duration-300 ${
         isScrolled
-          ? 'bg-gray-900/80 backdrop-blur-md shadow-sm py-4'
-          : 'bg-gray-900 backdrop-blur-md py-5'
+          ? 'bg-gray-600 backdrop-blur-md w-[50%] fixed left-[25%] rounded-3xl shadow-sm py-1 mt-2 '
+          : 'bg-gray-900 backdrop-blur-md py-5   top-0 left-0 right-0'
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
@@ -49,7 +49,7 @@ const Navbar = () => {
           ))}
           <button 
             onClick={() => navigate('/sign-in')}
-            className="px-6 py-2.5 bg-emerald-600 text-gray-50 rounded-lg font-semibold hover:bg-emerald-700 transition-colors cursor-pointer"
+            className="px-6 py-2 bg-emerald-600 text-gray-50 rounded-lg font-semibold hover:bg-emerald-700 transition-colors cursor-pointer"
           >
             Get Started
           </button>
