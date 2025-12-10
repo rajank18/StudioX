@@ -5,6 +5,7 @@ import WebLayout from '../layout/Web';
 import LandingPage from '../pages/LandingPage';
 import OnBoarding from '../pages/OnBoarding';
 import Home from '../pages/web/Home';
+import VideoToGif from '../pages/web/VideoToGif';
 
 const WebRoutes = () => {
   return (
@@ -31,6 +32,18 @@ const WebRoutes = () => {
         <>
           <SignedIn>
             <Home />
+          </SignedIn>
+          <SignedOut>
+            <Navigate to="/sign-in" replace />
+          </SignedOut>
+        </>
+      } />
+      
+      {/* Video to GIF Page */}
+      <Route path="/video-to-gif" element={
+        <>
+          <SignedIn>
+            <VideoToGif />
           </SignedIn>
           <SignedOut>
             <Navigate to="/sign-in" replace />

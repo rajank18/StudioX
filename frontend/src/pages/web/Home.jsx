@@ -1,6 +1,7 @@
 import React from 'react';
 import { useUser, UserButton } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Scissors, Type, MicOff, FileText, Sparkles, 
   VolumeX, Gauge, Image as ImageIcon, Crop, 
@@ -9,6 +10,7 @@ import {
 
 const Home = () => {
   const { user } = useUser();
+  const navigate = useNavigate();
 
   const tools = [
     { icon: Scissors, title: "AI Reel Cutter", description: "Turn long videos into shorts" },
@@ -93,6 +95,11 @@ const Home = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.05 }}
                   whileHover={{ y: -5 }}
+                  onClick={() => {
+                    if (tool.title === "Video-to-GIF") {
+                      navigate('/video-to-gif');
+                    }
+                  }}
                   className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-emerald-600 hover:shadow-lg transition-all text-left group"
                 >
                   <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-100 transition-colors">
