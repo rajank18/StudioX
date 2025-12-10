@@ -1,4 +1,3 @@
-// VideoToGif.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Link2, Play, Pause, Download, Loader, ArrowLeft } from 'lucide-react';
@@ -28,7 +27,7 @@ const VideoToGif = () => {
   const [startPercent, setStartPercent] = useState(0); // 0..1 for draggable selection
   const [dragging, setDragging] = useState(false);
 
-  // Handle file upload (unchanged)
+  // Handle file upload
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith('video/')) {
@@ -41,118 +40,15 @@ const VideoToGif = () => {
     }
   };
 
-  // ======= Edited URL handling: validate before setting as currentVideo =======
-  // Attempt to verify the provided URL is a direct video resource and playable.
-  // If validation succeeds, sets currentVideo(url) and clears input.
-  // If it fails, shows an alert and keeps the URL in input so user can correct it.
-  const handleUrlSubmit = async () => {
-    const url = (videoUrl || '').trim();
-    if (!url) return;
-
-    // quick rejection for obvious non-file URLs (optional)
-    const lower = url.toLowerCase();
-    // If it ends with common container extension, try directly (but still validate)
-    const likelyFile = /\.(mp4|webm|ogg|mov|m4v|mkv)(\?.*)?$/.test(lower);
-
-    // Create an offscreen video element to test the URL
-    const off = document.createElement('video');
-    off.muted = true;
-    off.playsInline = true;
-    // Try to allow crossOrigin — if server doesn't allow it, canvas read will still fail later.
-    off.crossOrigin = 'anonymous';
-    let settled = false;
-
-    const cleanup = () => {
-      try {
-        off.pause();
-        off.src = '';
-      } catch (e) {}
-    };
-
-    const timeoutMs = 7000; // 7 seconds to decide
-    try {
-      const result = await new Promise((resolve, reject) => {
-        const onLoadedMeta = () => {
-          if (settled) return;
-          settled = true;
-          off.removeEventListener('loadedmetadata', onLoadedMeta);
-          off.removeEventListener('error', onError);
-          clearTimeout(timer);
-          resolve({ ok: true, reason: 'loadedmetadata' });
-        };
-        const onError = (ev) => {
-          if (settled) return;
-          settled = true;
-          off.removeEventListener('loadedmetadata', onLoadedMeta);
-          off.removeEventListener('error', onError);
-          clearTimeout(timer);
-          // ev may be a MediaError; pass message
-          const msg = ev && ev.target && ev.target.error && ev.target.error.message
-            ? ev.target.error.message
-            : 'Media failed to load';
-          resolve({ ok: false, reason: 'error', message: msg });
-        };
-        const timer = setTimeout(() => {
-          if (settled) return;
-          settled = true;
-          off.removeEventListener('loadedmetadata', onLoadedMeta);
-          off.removeEventListener('error', onError);
-          resolve({ ok: false, reason: 'timeout' });
-        }, timeoutMs);
-
-        off.addEventListener('loadedmetadata', onLoadedMeta, { once: true });
-        off.addEventListener('error', onError, { once: true });
-
-        // set src last to start loading
-        try {
-          off.src = url;
-          // Some browsers require load() call
-          off.load();
-        } catch (err) {
-          clearTimeout(timer);
-          settled = true;
-          resolve({ ok: false, reason: 'exception', message: String(err) });
-        }
-      });
-
-      if (result.ok) {
-        // URL is playable by <video>. Accept it.
-        setCurrentVideo(url);
-        setVideoUrl(''); // clear input now that it's loaded
-        // cleanup offscreen
-        cleanup();
-        return;
-      } else {
-        // Not directly playable. Provide helpful message.
-        // Common scenarios:
-        // - URL is a YouTube/Vimeo watch page — not a direct file
-        // - URL is direct but server blocks CORS (video can play in video tag but canvas will fail later)
-        // - server doesn't return a video at that URL
-        let friendly = 'Cannot load the provided URL as a direct video file.';
-        if (result.reason === 'timeout') {
-          friendly += ' Loading timed out — the URL may be slow or blocked.';
-        } else if (result.reason === 'error') {
-          friendly += ` Media error: ${result.message || 'unknown'}.`;
-        } else if (result.reason === 'exception') {
-          friendly += ` Error: ${result.message || 'invalid URL'}.`;
-        }
-        friendly += '\n\nUse one of:\n• A direct video file URL ending with .mp4/.webm/.ogg (and served with CORS allowed),\n• Upload a local file (recommended),\n• Or provide a downloadable link (server-side) — public watch pages (e.g., YouTube watch pages) will not work here.';
-        // if likely file extension present, show a hint about CORS
-        if (likelyFile && !result.ok) {
-          friendly += '\n\nNote: even if the URL ends with .mp4, the server might block access via CORS. In that case upload the file or enable CORS on the server.';
-        }
-        alert(friendly);
-        cleanup();
-        return;
-      }
-    } catch (err) {
-      cleanup();
-      alert('Error validating URL: ' + (err?.message || err));
-      return;
+  // Handle URL input
+  const handleUrlSubmit = () => {
+    if (videoUrl.trim()) {
+      setCurrentVideo(videoUrl);
+      setVideoUrl('');
     }
   };
 
-  // Update video metadata (unchanged)
+  // Update video metadata
   useEffect(() => {
     if (videoRef.current && currentVideo) {
       const handleLoadedMetadata = () => {
@@ -171,7 +67,7 @@ const VideoToGif = () => {
     }
   }, [currentVideo]);
 
-  // Generate thumbnails (unchanged)
+  // Generate thumbnails across the video timeline (best-effort). Keeps count small to avoid freezes.
   const generateThumbnails = async () => {
     setThumbsError(false);
     setThumbnails([]);
@@ -231,7 +127,7 @@ const VideoToGif = () => {
     }
   };
 
-  // Keep startTime/endTime in sync when startPercent changes (unchanged)
+  // Keep startTime/endTime in sync when startPercent changes (selection moves)
   useEffect(() => {
     if (!videoDuration) return;
     const newStart = Math.max(0, Math.min(1, startPercent)) * Math.max(0, videoDuration - 5);
@@ -239,7 +135,7 @@ const VideoToGif = () => {
     setEndTime(Math.min(newStart + 5, videoDuration));
   }, [startPercent, videoDuration]);
 
-  // Pointer handlers (unchanged)
+  // Pointer handlers for draggable 5-second selection
   const onPointerDownSelection = (e) => {
     if (!thumbsRef.current) return;
     e.preventDefault();
@@ -272,7 +168,7 @@ const VideoToGif = () => {
     };
   }, [dragging, videoDuration]);
 
-  // Update current time as video plays (unchanged)
+  // Update current time as video plays
   useEffect(() => {
     if (!videoRef.current) return;
     const handleTimeUpdate = () => {
@@ -288,7 +184,7 @@ const VideoToGif = () => {
     };
   }, [endTime]);
 
-  // Play/Pause control (unchanged)
+  // Play/Pause control
   const togglePlay = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -301,7 +197,7 @@ const VideoToGif = () => {
     }
   };
 
-  // Start/end handlers (unchanged)
+  // Handle start time change
   const handleStartTimeChange = (value) => {
     const newStart = parseFloat(value);
     if (newStart < endTime) {
@@ -309,12 +205,14 @@ const VideoToGif = () => {
       if (videoRef.current) videoRef.current.currentTime = newStart;
     }
   };
+
+  // Handle end time change
   const handleEndTimeChange = (value) => {
     const newEnd = parseFloat(value);
     if (newEnd > startTime && newEnd <= videoDuration) setEndTime(newEnd);
   };
 
-  // generateGif (unchanged from your final working version)
+  // Robust generateGif: checks worker availability, extracts frames, encodes, handles progress/errors and triggers download reliably
   const generateGif = async () => {
     if (!videoRef.current) return;
     setIsLoading(true);
@@ -338,6 +236,7 @@ const VideoToGif = () => {
       const ctx = canvas.getContext('2d');
 
       // Choose a safe size for canvas to reduce memory (you can keep original if you want)
+      // If video dimensions are huge, you may want to downscale to e.g., maxWidth = 640
       const maxWidth = 640;
       const vidW = video.videoWidth || 640;
       const vidH = video.videoHeight || 360;
@@ -410,15 +309,22 @@ const VideoToGif = () => {
         gif.on('finished', (blob) => {
           finished = true;
           try {
+            // create a stable download link and click it
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `video-to-gif-${Date.now()}.gif`;
+
+            // Append to DOM and click (some browsers require it)
             document.body.appendChild(a);
+            // Use MouseEvent for more compatibility
             const evt = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
             a.dispatchEvent(evt);
             document.body.removeChild(a);
+
+            // schedule revoke
             setTimeout(() => URL.revokeObjectURL(url), 5000);
+
             resolve();
           } catch (err) {
             reject(err);
@@ -434,7 +340,7 @@ const VideoToGif = () => {
         });
       });
 
-      // 4) Add frames
+      // 4) Add frames (ensure each image loads in encoder)
       for (let i = 0; i < frames.length; i++) {
         await new Promise((resolve, reject) => {
           const img = new Image();
@@ -447,7 +353,7 @@ const VideoToGif = () => {
               reject(err);
             }
           };
-          img.onerror = () => {
+          img.onerror = (e) => {
             reject(new Error('Failed to load frame image for encoding. Possibly CORS or corrupt data.'));
           };
           img.src = frames[i];
@@ -456,6 +362,7 @@ const VideoToGif = () => {
 
       // 5) render
       gif.render();
+      // wait for the finished event
       await finishedPromise;
 
       console.log('[GIF] done');
@@ -463,6 +370,7 @@ const VideoToGif = () => {
       setEncodeProgress(0);
     } catch (err) {
       console.error('[generateGif] error:', err);
+      // Provide clear user-friendly messages for common issues
       if (String(err).toLowerCase().includes('cors')) {
         alert('Error: CORS prevented reading video frames. Use a local upload or a URL with CORS enabled.');
       } else {
@@ -480,7 +388,6 @@ const VideoToGif = () => {
     return `${mins}:${secsStr}`;
   };
 
-  // --- Remainder of your original JSX UI is unchanged ---
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
@@ -569,9 +476,11 @@ const VideoToGif = () => {
             </div>
           </motion.div>
         ) : (
-          // ... the rest of the UI (player, trim, actions) remains unchanged from your file.
-          // For brevity I assume it is identical to what you already have and included above.
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto space-y-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="max-w-4xl mx-auto space-y-8"
+          >
             {/* Video Player Section */}
             <div className="bg-white rounded-2xl p-8 border border-gray-200 space-y-6">
               <h2 className="text-xl font-semibold text-gray-900">Video Preview</h2>
@@ -584,33 +493,128 @@ const VideoToGif = () => {
                   onPause={() => setIsPlaying(false)}
                 />
               </div>
-              {/* ... (rest of controls and UI are unchanged) */}
-              <div className="flex gap-3 items-center">
+
+              {/* Player Controls */}
+              <div className="flex items-center gap-4 bg-gray-100 p-4 rounded-lg">
                 <button
-                  onClick={() => setCurrentVideo(null)}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                  onClick={togglePlay}
+                  className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 transition-colors flex-shrink-0"
                 >
-                  Choose Different Video
-                </button>
-                <button
-                  onClick={generateGif}
-                  disabled={isLoading}
-                  className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader className="w-5 h-5 animate-spin" />
-                      Generating GIF...
-                    </>
+                  {isPlaying ? (
+                    <Pause className="w-5 h-5" />
                   ) : (
-                    <>
-                      <Download className="w-5 h-5" />
-                      Convert to GIF & Download
-                    </>
+                    <Play className="w-5 h-5 ml-1" />
                   )}
                 </button>
+                <div className="flex-1 flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="0"
+                    max={videoDuration}
+                    step="0.1"
+                    value={currentTime}
+                    onChange={(e) => {
+                      const time = parseFloat(e.target.value);
+                      setCurrentTime(time);
+                      if (videoRef.current) videoRef.current.currentTime = time;
+                    }}
+                    className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                  />
+                  <span className="text-sm font-medium text-gray-700 min-w-fit">
+                    {formatTime(currentTime)} / {formatTime(videoDuration)}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {/* Trim Section (thumbnail timeline + draggable 5s selection) */}
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Select 5-Second Segment</h2>
+                {videoDuration > 5 && (
+                  <p className="text-sm text-gray-600">
+                    Your video is {formatTime(videoDuration)} long. Drag the selection to choose which 5 seconds to convert.
+                  </p>
+                )}
+                {thumbsError && (
+                  <p className="text-sm text-red-600 mt-2">Thumbnails unavailable (cross-origin). Use file upload or a CORS-enabled URL for thumbnails.</p>
+                )}
+              </div>
+
+              {/* Thumbnail strip */}
+              <div className="space-y-3">
+                <div ref={thumbsRef} className="relative bg-gray-100 rounded-lg overflow-hidden" style={{height: 84}} onPointerDown={onPointerDownSelection}>
+                  <div className="flex items-center gap-0 h-full overflow-x-auto no-scrollbar">
+                    {thumbnails.length > 0 ? (
+                      thumbnails.map((t, i) => (
+                        <img key={i} src={t} alt={`thumb-${i}`} className="h-20 w-auto object-cover" />
+                      ))
+                    ) : (
+                      <div className="flex items-center justify-center h-full w-full text-sm text-gray-500">No thumbnails</div>
+                    )}
+                  </div>
+
+                  {/* selection overlay */}
+                  <div
+                    ref={selectionRef}
+                    onPointerDown={onPointerDownSelection}
+                    className="absolute top-0 bottom-0 bg-white/10 border-2 border-purple-500 rounded-md cursor-grab"
+                    style={{
+                      left: `${(startPercent * 100).toFixed(2)}%`,
+                      width: `${videoDuration ? Math.min(100, (5 / videoDuration) * 100) : 0}%`,
+                    }}
+                  >
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-8 bg-black border-2 border-purple-600 rounded-sm" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-5 h-8 bg-black border-2 border-purple-600 rounded-sm" />
+                  </div>
+                </div>
+
+                <div className="flex justify-between text-sm text-gray-700">
+                  <div>Start: <span className="font-semibold text-purple-600">{formatTime(startTime)}</span></div>
+                  <div>End: <span className="font-semibold text-purple-600">{formatTime(endTime)}</span></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hidden Canvas for GIF generation */}
+            <canvas ref={canvasRef} className="hidden" />
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 items-center">
+              <button
+                onClick={() => setCurrentVideo(null)}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Choose Different Video
+              </button>
+              <button
+                onClick={generateGif}
+                disabled={isLoading}
+                className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    Generating GIF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-5 h-5" />
+                    Convert to GIF & Download
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Optional progress bar */}
+            {isLoading && (
+              <div className="mt-4">
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="bg-emerald-600 h-3 rounded-full" style={{ width: `${(encodeProgress * 100).toFixed(1)}%` }} />
+                </div>
+                <p className="text-sm text-gray-600 mt-2">Encoding: {(encodeProgress * 100).toFixed(1)}%</p>
+              </div>
+            )}
           </motion.div>
         )}
       </div>
