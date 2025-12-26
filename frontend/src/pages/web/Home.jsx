@@ -1,5 +1,5 @@
 import React from 'react';
-import { useUser, UserButton } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { 
   Scissors, Type, MicOff, FileText, Sparkles, 
@@ -27,20 +27,13 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Welcome back, {user?.firstName || 'there'}! 👋
-            </h1>
-            <p className="text-gray-600">Ready to create something amazing?</p>
-          </div>
-          <UserButton afterSignOutUrl="/" />
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        {/* Welcome Section */}
+        <div className="mb-5">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.firstName || 'Creator'}!
+          </h1>
         </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Quick Upload Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

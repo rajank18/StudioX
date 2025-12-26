@@ -26,17 +26,19 @@ const WebRoutes = () => {
         // </>
       } />
       
-      {/* Protected home - with navbar */}
-      <Route path="/home" element={
-        <>
-          <SignedIn>
-            <Home />
-          </SignedIn>
-          <SignedOut>
-            <Navigate to="/sign-in" replace />
-          </SignedOut>
-        </>
-      } />
+      {/* Protected routes with sidebar */}
+      <Route element={<WebLayout />}>
+        <Route path="/home" element={
+          <>
+            <SignedIn>
+              <Home />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+      </Route>
     </Routes>
   );
 };
