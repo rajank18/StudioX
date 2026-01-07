@@ -46,6 +46,7 @@ model User {
   usageLogs        UsageLog[]
   aiTasks          AiTask[]
   transactions     Transaction[]
+  videoDownloads   VideoDownload[]
 }
 
 // ========================================================
@@ -94,4 +95,27 @@ model Transaction {
   amount       Int       // +500 for monthly add, -20 for use
   description  String?
   createdAt    DateTime  @default(now())
+}
+
+// ========================================================
+//                VIDEO DOWNLOAD MODEL
+//  - Stores user's downloaded videos from YouTube etc.
+// ========================================================
+model VideoDownload {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+
+  title        String    // Video title
+  originalUrl  String    // Original YouTube URL
+  filename     String    // Downloaded filename
+  filePath     String    // Server file path
+  publicUrl    String    // Public URL for access
+  fileSize     Int       // File size in bytes
+  duration     String?   // Video duration if available
+  thumbnail    String?   // Thumbnail URL if available
+  service      String    @default("youtube") // "youtube", "tiktok", etc.
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }

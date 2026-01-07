@@ -28,7 +28,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Welcome Section */}
         <div className="mb-5">
@@ -40,14 +40,14 @@ const Home = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-2xl p-8 mb-12 text-white shadow-xl"
+          className="bg-primary rounded-2xl p-8 mb-12 text-white shadow-xl"
         >
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <h2 className="text-3xl font-bold mb-2">Start Creating</h2>
-              <p className="text-emerald-100">Upload your video and let AI do the magic</p>
+              <p className="text-orange-100">Upload your video and let AI do the magic</p>
             </div>
-            <button className="flex items-center gap-3 px-8 py-4 bg-white text-emerald-600 rounded-xl font-semibold hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl">
+            <button className="btn-outline-primary flex items-center gap-3">
               <Upload className="w-5 h-5" />
               Upload Video
             </button>
@@ -59,7 +59,7 @@ const Home = () => {
           {[
             { label: 'Videos Processed', value: '0', color: 'text-blue-600' },
             { label: 'Total Duration', value: '0m', color: 'text-purple-600' },
-            { label: 'Credits Left', value: '10,000', color: 'text-emerald-600' },
+            { label: 'Credits Left', value: '10,000', color: 'text-[#ff914c]' },
             { label: 'Projects', value: '0', color: 'text-orange-600' }
           ].map((stat, idx) => (
             <motion.div
@@ -67,7 +67,7 @@ const Home = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
-              className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-emerald-600 transition-colors"
+              className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-primary transition-colors"
             >
               <p className="text-gray-600 text-sm mb-1">{stat.label}</p>
               <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -91,12 +91,14 @@ const Home = () => {
                   onClick={() => {
                     if (tool.title === "Video-to-GIF") {
                       navigate('/video-to-gif');
+                    } else if (tool.title === "YouTube Downloader") {
+                      navigate('/yt-downloader');
                     }
                   }}
-                  className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-emerald-600 hover:shadow-lg transition-all text-left group"
+                  className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-primary hover:shadow-lg transition-all text-left group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-4 group-hover:bg-emerald-100 transition-colors">
-                    <Icon className="w-6 h-6 text-emerald-600" />
+                  <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center mb-4 group-hover:bg-orange-100 transition-colors">
+                    <Icon className="w-6 h-6 text-[#ff914c]" />
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-1">{tool.title}</h3>
                   <p className="text-sm text-gray-600">{tool.description}</p>
@@ -108,14 +110,30 @@ const Home = () => {
 
         {/* Recent Projects */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Projects</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Recent Projects</h2>
+            <button 
+              onClick={() => navigate('/projects')}
+              className="text-primary hover:text-primary-600 font-medium text-sm transition-colors"
+            >
+              View All →
+            </button>
+          </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
             <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No projects yet</h3>
-            <p className="text-gray-600 mb-6">Upload your first video to get started</p>
-            <button className="px-6 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
-              Upload Video
-            </button>
+            <p className="text-gray-600 mb-6">Upload your first video or download from YouTube to get started</p>
+            <div className="flex gap-3 justify-center">
+              <button className="btn-primary">
+                Upload Video
+              </button>
+              <button 
+                onClick={() => navigate('/yt-downloader')}
+                className="btn-outline-primary"
+              >
+                Download from YouTube
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -5,17 +5,17 @@ import WebLayout from '../layout/Web';
 import LandingPage from '../pages/LandingPage';
 import OnBoarding from '../pages/OnBoarding';
 import Home from '../pages/web/Home';
-import VideoToGif from '../pages/web/VideoToGif';
+import YtDownloader from '../pages/web/YtDownloader';
+import Projects from '../pages/web/Projects';
+// import VideoToGif from '../pages/web/VideoToGif';
 
 const WebRoutes = () => {
   return (
     <Routes>
-      {/* Landing page with navbar */}
-      <Route path="/" element={<WebLayout />}>
-        <Route index element={<LandingPage />} />
-      </Route>
+      {/* Public landing page (no sidebar/layout) */}
+      <Route path="/" element={<LandingPage />} />
       
-      {/* Protected onboarding - no navbar */}
+      {/* Protected onboarding - no navbar
       <Route path="/onboarding" element={ <OnBoarding/>
         // <>
         //   <SignedIn>
@@ -25,14 +25,35 @@ const WebRoutes = () => {
         //     <Navigate to="/sign-in" replace />
         //   </SignedOut>
         // </>
-      } />
+      } /> */}
       
-      {/* Protected routes with sidebar */}
+      {/* Protected app routes wrapped in WebLayout (with sidebar) */}
       <Route element={<WebLayout />}>
         <Route path="/home" element={
           <>
             <SignedIn>
               <Home />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+            
+          </>
+        } />
+        <Route path="/yt-downloader" element={
+          <>
+            <SignedIn>
+              <YtDownloader />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/projects" element={
+          <>
+            <SignedIn>
+              <Projects />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />

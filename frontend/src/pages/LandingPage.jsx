@@ -7,6 +7,8 @@ import {
   BookOpen, Download, Layout, Check, 
   Section
 } from 'lucide-react';
+import Navbar from '../components/web/Navbar';
+import Footer from '../components/web/Footer';
 
 // Animation variants
 const fadeInUp = {
@@ -99,6 +101,7 @@ const LandingPage = () => {
   return (
     <div className="overflow-hidden bg-white">
       {/* Hero Section */}
+      <Navbar/>
       <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-gradient-to-b from-[#fff8e8] to-gray-800">
         {/* Subtle Pattern Background */}
         <div className="absolute inset-0 opacity-80">
@@ -312,6 +315,7 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
+      <Footer/>
     </div>
   );
 };

@@ -1,5 +1,56 @@
 @import "tailwindcss";
 
+/* Theme Colors */
+:root {
+  --color-primary: #ff914c;        /* Logo orange */
+  --color-primary-50: #fff3e9;     /* Light orange background */
+  --color-primary-100: #ffe6d3;
+  --color-primary-600: #ff7a1a;    /* Darker hover orange */
+
+  --color-secondary: #fff8e8;      /* Cream accent */
+  --color-surface: #ffffff;        /* Card surface */
+  --color-muted: #f3f4f6;          /* Gray-100 */
+  --color-text: #111827;           /* Gray-900 */
+}
+
+/* Utility classes for theme */
+.text-primary { color: var(--color-primary); }
+.bg-primary { background-color: var(--color-primary); }
+.bg-primary-50 { background-color: var(--color-primary-50); }
+.border-primary { border-color: var(--color-primary); }
+.hover\:border-primary:hover { border-color: var(--color-primary); }
+.hover\:bg-primary-50:hover { background-color: var(--color-primary-50); }
+.hover\:text-primary:hover { color: var(--color-primary); }
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+.btn-primary:hover { background-color: var(--color-primary-600); }
+
+.btn-outline-primary {
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  background-color: #fff;
+  border-radius: 0.75rem;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  transition: background-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+.btn-outline-primary:hover {
+  background-color: var(--color-primary-50);
+}
+
+/* Gradient helper using theme */
+.bg-gradient-primary {
+  background-image: linear-gradient(to right, var(--color-primary), #ffa96f);
+}
+
 /* Custom Animations */
 @keyframes float {
   0%, 100% {
