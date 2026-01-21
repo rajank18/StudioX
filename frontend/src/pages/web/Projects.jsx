@@ -25,7 +25,8 @@ const Projects = () => {
       const response = await fetch('http://localhost:3000/api/video/user/videos', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-User-ID': user?.id, // Send user ID directly
+          'X-User-Id': user?.id || '',
+          'X-User-Email': user?.emailAddresses?.[0]?.emailAddress || '',
         },
       });
 
@@ -73,7 +74,8 @@ const Projects = () => {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-User-ID': user?.id, // Send user ID directly
+          'X-User-Id': user?.id || '',
+          'X-User-Email': user?.emailAddresses?.[0]?.emailAddress || '',
         },
       });
 

@@ -4,15 +4,20 @@ const logger = require('../utils/logger');
 
 const getCurrentUser = asyncHandler(async (req, res) => {
   const userId = req.userId;
+  const userEmail = req.headers['x-user-email'];
 
   if (!userId) {
     throw new AppError(401, 'User not authenticated');
   }
 
+  if (!userEmail) {
+    throw new AppError(400, 'User email is required');
+  }
+
   const user = await userService.getUserById(userId);
 
   if (!user) {
-    const createdUser = await userService.createOrUpdateUser(userId, req.body?.email || '');
+    const createdUser = await userService.createOrUpdateUser(userId, userEmail);
     return res.status(201).json({
       success: true,
       message: 'User created',

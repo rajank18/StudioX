@@ -1,11 +1,13 @@
 const { Router } = require('express');
-const { authMiddleware, attachUserId } = require('../middleware/auth');
 const userController = require('../controllers/userController');
+const { clerkAuth, ensureUserExists, setUserIdFromAuth } = require('../middleware/clerkAuth');
 
 const router = Router();
 
-router.use(authMiddleware);
-router.use(attachUserId);
+// Use Clerk auth for all user endpoints
+router.use(clerkAuth);
+router.use(ensureUserExists);
+router.use(setUserIdFromAuth);
 
 router.get('/me', userController.getCurrentUser);
 router.get('/credits', userController.getUserCredits);

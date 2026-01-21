@@ -16,39 +16,40 @@ const getUserById = async (userId) => {
 
 const createOrUpdateUser = async (userId, email) => {
   try {
-    let user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      let freePlan = await prisma.plan.findUnique({
-        where: { name: 'Free' },
-      });
-
-      if (!freePlan) {
-        freePlan = await prisma.plan.create({
-          data: {
-            name: 'Free',
-            monthlyCredits: 10000,
-            isUnlimited: false,
-          },
-        });
-      }
-
-      user = await prisma.user.create({
-        data: {
-          id: userId,
-          email,
-          planId: freePlan.id,
-          currentCredits: 10000,
-          creditResetAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        },
-        include: { plan: true },
-      });
-
-      logger.info(`New user created: ${userId}`);
+    if (!email || !email.trim()) {
+      throw new Error('Email is required to create/update user');
     }
 
+    let freePlan = await prisma.plan.findUnique({
+      where: { name: 'Free' },
+    });
+
+    if (!freePlan) {
+      freePlan = await prisma.plan.create({
+        data: {
+          name: 'Free',
+          monthlyCredits: 10000,
+          isUnlimited: false,
+        },
+      });
+    }
+
+    const user = await prisma.user.upsert({
+      where: { id: userId },
+      update: {
+        email: email.trim(),
+      },
+      create: {
+        id: userId,
+        email: email.trim(),
+        planId: freePlan.id,
+        currentCredits: 10000,
+        creditResetAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+      include: { plan: true },
+    });
+
+    logger.info(`User upserted: ${userId} with email: ${email}`);
     return user;
   } catch (error) {
     logger.error('Error creating/updating user', error);

@@ -41,8 +41,8 @@ const YtDownloader = () => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'X-User-ID': user?.id, // Send user ID directly
-          'X-User-Email': user?.emailAddresses?.[0]?.emailAddress, // Send email
+          'X-User-Id': user?.id || '',
+          'X-User-Email': user?.emailAddresses?.[0]?.emailAddress || '',
         },
         body: JSON.stringify({ url: url.trim() }),
       });
