@@ -93,6 +93,8 @@ const Home = () => {
                       navigate('/video-to-gif');
                     } else if (tool.title === "YouTube Downloader") {
                       navigate('/yt-downloader');
+                    } else if (tool.title === "Silence Remover") {
+                      navigate('/remove-silence');
                     }
                   }}
                   className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-primary hover:shadow-lg transition-all text-left group"

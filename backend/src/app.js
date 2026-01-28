@@ -9,6 +9,7 @@ const userRoutes = require('./routes/userRoutes');
 const aiTaskRoutes = require('./routes/aiTaskRoutes');
 const billingRoutes = require('./routes/billingRoutes');
 const videoRoutes = require('./routes/videoRoutes');
+const silenceRemoverRoutes = require('./routes/silenceRemoverRoutes');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/tasks', aiTaskRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/video', videoRoutes);
+app.use('/api', silenceRemoverRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

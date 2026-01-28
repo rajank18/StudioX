@@ -7,6 +7,7 @@ import OnBoarding from '../pages/OnBoarding';
 import Home from '../pages/web/Home';
 import YtDownloader from '../pages/web/YtDownloader';
 import Projects from '../pages/web/Projects';
+import RemoveSilence from '../pages/web/RemoveSilence';
 // import VideoToGif from '../pages/web/VideoToGif';
 
 const WebRoutes = () => {
@@ -54,6 +55,16 @@ const WebRoutes = () => {
           <>
             <SignedIn>
               <Projects />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/remove-silence" element={
+          <>
+            <SignedIn>
+              <RemoveSilence />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />
