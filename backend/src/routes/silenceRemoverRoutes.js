@@ -1,71 +1,63 @@
 const express = require('express');
 const multer = require('multer');
-const { execFile } = require('child_process');
 const path = require('path');
-const fs = require('fs');
-const logger = require('../utils/logger');
-let ffmpegPath;
-try {
-    ffmpegPath = require('ffmpeg-static');
-} catch (e) {
-    ffmpegPath = null;
-}
+const {
+    removeSilence,
+    downloadProcessedAudio,
+    getTaskHistory,
+    getTaskDetails,
+    deleteTask,
+} = require('../controllers/silenceRemoverController');
 
 const router = express.Router();
-const upload = multer({ dest: path.join(__dirname, '../', 'uploads') });
 
-router.post('/remove-silence', upload.single('audio'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No audio file provided' });
-    }
-
-    const inputFile = req.file.path;
-    const outputFile = path.join(path.dirname(inputFile), `processed_${Date.now()}.mp3`);
-
-    // Use execFile instead of exec for better security and Windows compatibility
-    // Prefer bundled ffmpeg binary (ffmpeg-static) when available
-    const ffmpegExec = ffmpegPath || 'ffmpeg';
-    if (!ffmpegPath) logger.warn('ffmpeg-static not found; relying on system ffmpeg in PATH');
-
-    execFile(ffmpegExec, [
-        '-i', inputFile,
-        '-af', 'silenceremove=start_periods=1:start_duration=1:start_threshold=-50dB:stop_periods=1:stop_duration=1:stop_threshold=-50dB',
-        '-y', // Overwrite output file
-        outputFile
-    ], (error, stdout, stderr) => {
-        // Clean up input file
-        fs.unlink(inputFile, (err) => {
-            if (err) logger.error('Error deleting input file:', err);
-        });
-
-        if (error) {
-            logger.error('FFmpeg error:', stderr || error.message);
-            // Clean up output file if it was partially created
-            fs.unlink(outputFile, (err) => {
-                if (err) logger.error('Error deleting output file:', err);
-            });
-            return res.status(500).json({ 
-                error: 'Error processing audio. Make sure FFmpeg is installed and available in PATH.',
-                details: stderr 
-            });
+// Configure multer for audio upload
+const upload = multer({
+    dest: path.join(__dirname, '../temp/uploads'),
+    limits: {
+        fileSize: 100 * 1024 * 1024, // 100MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        // Accept audio files
+        const allowedMimes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/x-m4a', 'audio/webm'];
+        if (allowedMimes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Please upload an audio file.'));
         }
-
-        // Check if output file exists
-        if (!fs.existsSync(outputFile)) {
-            logger.error('Output file was not created');
-            return res.status(500).json({ error: 'Error processing audio - output file not created' });
-        }
-
-        // Send file and clean up after download
-        res.download(outputFile, 'processed_audio.mp3', (err) => {
-            if (err) {
-                logger.error('Error sending file:', err);
-            }
-            fs.unlink(outputFile, (unlinkErr) => {
-                if (unlinkErr) logger.error('Error deleting output file:', unlinkErr);
-            });
-        });
-    });
+    },
 });
+
+/**
+ * POST /api/remove-silence (legacy endpoint for backward compatibility)
+ * POST /api/silence-remover/remove
+ * Upload audio and remove silence
+ */
+router.post('/remove-silence', upload.single('audio'), removeSilence);
+router.post('/silence-remover/remove', upload.single('audio'), removeSilence);
+
+/**
+ * GET /api/silence-remover/download/:taskId
+ * Download processed audio file
+ */
+router.get('/silence-remover/download/:taskId', downloadProcessedAudio);
+
+/**
+ * GET /api/silence-remover/tasks
+ * Get user's silence remover task history
+ */
+router.get('/silence-remover/tasks', getTaskHistory);
+
+/**
+ * GET /api/silence-remover/task/:taskId
+ * Get details of a specific task
+ */
+router.get('/silence-remover/task/:taskId', getTaskDetails);
+
+/**
+ * DELETE /api/silence-remover/task/:taskId
+ * Delete a task and cleanup files
+ */
+router.delete('/silence-remover/task/:taskId', deleteTask);
 
 module.exports = router;

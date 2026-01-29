@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Loader, CheckCircle, AlertCircle } from 'lucide-react';
 
 const RemoveSilence = () => {
+    const { getToken } = useAuth();
+    const { user } = useUser();
     const [audioFile, setAudioFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -30,8 +33,14 @@ const RemoveSilence = () => {
         formData.append('audio', audioFile);
 
         try {
+            const token = await getToken();
             const response = await fetch('http://localhost:3000/api/remove-silence', {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'X-User-ID': user?.id,
+                    'X-User-Email': user?.emailAddresses?.[0]?.emailAddress,
+                },
                 body: formData,
             });
 
