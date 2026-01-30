@@ -12,6 +12,7 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.58.0",
     "@tailwindcss/vite": "^4.1.17",
+    "axios": "^1.13.4",
     "clsx": "^2.1.1",
     "ffmpeg.js": "^4.2.9003",
     "framer-motion": "^12.23.25",

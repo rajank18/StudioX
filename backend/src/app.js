@@ -5,10 +5,12 @@ const path = require('path');
 require('dotenv').config();
 
 const { errorHandler } = require('./middleware/errorHandler');
+const { clerkAuth, ensureUserExists } = require('./middleware/clerkAuth');
 const userRoutes = require('./routes/userRoutes');
 const aiTaskRoutes = require('./routes/aiTaskRoutes');
 const billingRoutes = require('./routes/billingRoutes');
 const videoRoutes = require('./routes/videoRoutes');
+const silenceRemoverRoutes = require('./routes/silenceRemoverRoutes');
 
 const app = express();
 
@@ -19,6 +21,10 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Apply Clerk auth middleware
+app.use(clerkAuth);
+app.use(ensureUserExists);
 
 // Serve downloaded files from src/temp/uploads with proper headers
 app.use('/uploads', express.static(path.join(__dirname, 'temp', 'uploads'), {
@@ -39,6 +45,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/tasks', aiTaskRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/video', videoRoutes);
+app.use('/api', silenceRemoverRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
