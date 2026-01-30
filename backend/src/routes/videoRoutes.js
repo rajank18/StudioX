@@ -4,6 +4,9 @@ const { clerkAuth, ensureUserExists } = require('../middleware/clerkAuth');
 
 const router = Router();
 
+// Get video info without downloading
+router.post('/youtube/info', youtubeController.getYoutubeVideoInfo);
+
 // Temporary: Allow downloads without strict auth for testing
 router.post('/youtube/download', clerkAuth, ensureUserExists, youtubeController.downloadYoutubeVideo);
 

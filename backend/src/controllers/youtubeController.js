@@ -1,4 +1,4 @@
-const { downloadVideo, getUserVideos, deleteUserVideo } = require('../services/youtubeService');
+const { downloadVideo, getUserVideos, deleteUserVideo, getVideoInfo } = require('../services/youtubeService');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 // POST /api/video/youtube/download
@@ -76,8 +76,21 @@ const deleteUserVideoById = asyncHandler(async (req, res) => {
   return res.status(200).json({ message: 'Video deleted successfully' });
 });
 
+// POST /api/video/youtube/info
+const getYoutubeVideoInfo = asyncHandler(async (req, res) => {
+  const { url } = req.body;
+  
+  if (!url) {
+    return res.status(400).json({ error: 'YouTube URL is required' });
+  }
+
+  const videoInfo = await getVideoInfo(url);
+  return res.status(200).json(videoInfo);
+});
+
 module.exports = {
   downloadYoutubeVideo,
   getUserVideoList,
   deleteUserVideoById,
+  getYoutubeVideoInfo,
 };

@@ -9,6 +9,9 @@ const prisma = new PrismaClient();
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'temp', 'uploads');
 
+// Use system yt-dlp if available, fallback to bundled
+const YT_DLP_PATH = 'yt-dlp'; // This will use system PATH yt-dlp
+
 function ensureUploadsDir() {
   try {
     if (!fs.existsSync(UPLOADS_DIR)) {
@@ -16,6 +19,69 @@ function ensureUploadsDir() {
     }
   } catch (err) {
     logger.error('Failed to ensure uploads directory', err);
+    throw err;
+  }
+}
+
+/**
+ * Get video info without downloading
+ * @param {string} url - YouTube URL
+ * @returns {{ title: string, duration: string, thumbnail: string, formats: array }}
+ */
+async function getVideoInfo(url) {
+  try {
+    const videoInfo = await ytDlp(url, {
+      dumpJson: true,
+      quiet: true,
+    }, { ytDlpPath: YT_DLP_PATH });
+
+    const title = videoInfo.title || 'Unknown Video';
+    const duration = videoInfo.duration_string || null;
+    const thumbnail = videoInfo.thumbnail || null;
+    
+    // Extract available formats with quality info
+    const availableFormats = [];
+    const formatMap = new Map();
+    
+    if (videoInfo.formats) {
+      videoInfo.formats.forEach(fmt => {
+        if (fmt.ext === 'mp4' && fmt.height && fmt.vcodec !== 'none') {
+          const quality = `${fmt.height}p`;
+          if (!formatMap.has(quality) || fmt.filesize > (formatMap.get(quality).filesize || 0)) {
+            formatMap.set(quality, {
+              quality,
+              height: fmt.height,
+              ext: 'mp4',
+              filesize: fmt.filesize || 0,
+              formatId: fmt.format_id,
+            });
+          }
+        }
+      });
+    }
+    
+    // Convert to array and sort by quality
+    const formats = Array.from(formatMap.values())
+      .sort((a, b) => b.height - a.height)
+      .map(f => ({
+        quality: f.quality,
+        label: `MP4 ${f.quality}`,
+        filesize: f.filesize,
+      }));
+
+    return {
+      title,
+      duration,
+      thumbnail,
+      formats: formats.length > 0 ? formats : [
+        { quality: '1080p', label: 'MP4 1080p', filesize: 0 },
+        { quality: '720p', label: 'MP4 720p', filesize: 0 },
+        { quality: '480p', label: 'MP4 480p', filesize: 0 },
+        { quality: '360p', label: 'MP4 360p', filesize: 0 },
+      ],
+    };
+  } catch (err) {
+    logger.error('Error fetching video info', err);
     throw err;
   }
 }
@@ -31,6 +97,8 @@ async function downloadVideo(url, userId, options = {}) {
   ensureUploadsDir();
 
   const format = options.format || 'mp4';
+  const quality = options.quality || 'best'; // e.g., '1080p', '720p', '480p', '360p'
+  
   // Create unique session subdirectory to reliably locate output
   const sessionDir = path.join(UPLOADS_DIR, `dl_${Date.now()}`);
   fs.mkdirSync(sessionDir, { recursive: true });
@@ -43,23 +111,30 @@ async function downloadVideo(url, userId, options = {}) {
     const ffmpegCheck = spawnSync('ffmpeg', ['-version'], { windowsHide: true });
     const hasFfmpeg = ffmpegCheck.status === 0;
 
-    // If ffmpeg exists, we can safely download separate streams and merge.
-    // Otherwise, prefer a single-file format to avoid merge errors.
-    const dlOptions = hasFfmpeg
-      ? {
-          format: 'bv*+ba/b',
-          mergeOutputFormat: format,
-        }
-      : {
-          // Prefer mp4 single-file, then webm, then best available
-          format: 'b[ext=mp4]/b[ext=m4v]/b[ext=webm]/best',
-        };
+    // Build format string based on quality selection
+    // Avoid HLS formats (m3u8) that are getting 403 errors
+    let formatString;
+    if (quality !== 'best') {
+      const heightMap = { '360p': 360, '480p': 480, '720p': 720, '1080p': 1080 };
+      const targetHeight = heightMap[quality] || 720;
+      // Force non-HLS progressive downloads
+      formatString = `bestvideo[height<=${targetHeight}][ext=mp4][protocol^=https]+bestaudio[ext=m4a]/best[height<=${targetHeight}][ext=mp4][protocol^=https]/best[height<=${targetHeight}]`;
+    } else {
+      formatString = 'bestvideo[ext=mp4][protocol^=https]+bestaudio[ext=m4a]/best[ext=mp4][protocol^=https]/best';
+    }
+
+    const dlOptions = {
+      format: formatString,
+      mergeOutputFormat: format,
+      preferFreeFormats: true,
+      noCheckCertificates: true,
+    };
 
     // Get video info first for title and duration
     const videoInfo = await ytDlp(url, {
       dumpJson: true,
       quiet: true,
-    });
+    }, { ytDlpPath: YT_DLP_PATH });
 
     const title = videoInfo.title || 'Unknown Video';
     const duration = videoInfo.duration_string || null;
@@ -72,7 +147,7 @@ async function downloadVideo(url, userId, options = {}) {
       noPart: true,
       output: outTemplate,
       quiet: false, // Enable verbose output for debugging
-    });
+    }, { ytDlpPath: YT_DLP_PATH });
 
     // List all files and pick the largest non-temp media-like file
     const allFiles = fs.readdirSync(sessionDir)
@@ -194,6 +269,7 @@ async function deleteUserVideo(userId, videoId) {
 }
 
 module.exports = {
+  getVideoInfo,
   downloadVideo,
   getUserVideos,
   deleteUserVideo,

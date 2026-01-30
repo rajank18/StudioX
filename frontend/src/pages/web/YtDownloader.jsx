@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { Download, Link, Loader, CheckCircle, AlertCircle } from 'lucide-react';
+import { Download, Link, Loader, CheckCircle, AlertCircle, Play } from 'lucide-react';
 
 const YtDownloader = () => {
   const { getToken } = useAuth();
   const { user } = useUser();
   const [url, setUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingInfo, setIsLoadingInfo] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [videoInfo, setVideoInfo] = useState(null);
+  const [selectedQuality, setSelectedQuality] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
@@ -19,7 +22,7 @@ const YtDownloader = () => {
     return patterns.some(pattern => pattern.test(url));
   };
 
-  const handleDownload = async () => {
+  const handleStart = async () => {
     if (!url.trim()) {
       setError('Please enter a YouTube URL');
       return;
@@ -30,7 +33,46 @@ const YtDownloader = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoadingInfo(true);
+    setError('');
+    setVideoInfo(null);
+    setSelectedQuality(null);
+    setResult(null);
+
+    try {
+      const response = await fetch('http://localhost:3000/api/video/youtube/info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch video info');
+      }
+
+      setVideoInfo(data);
+      // Select the highest quality by default (first in list)
+      if (data.formats && data.formats.length > 0) {
+        setSelectedQuality(data.formats[0].quality);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to fetch video information');
+    } finally {
+      setIsLoadingInfo(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!videoInfo || !selectedQuality) {
+      setError('Please select a quality first');
+      return;
+    }
+
+    setIsDownloading(true);
     setError('');
     setResult(null);
 
@@ -44,7 +86,10 @@ const YtDownloader = () => {
           'X-User-Id': user?.id || '',
           'X-User-Email': user?.emailAddresses?.[0]?.emailAddress || '',
         },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ 
+          url: url.trim(),
+          quality: selectedQuality,
+        }),
       });
 
       const data = await response.json();
@@ -57,7 +102,7 @@ const YtDownloader = () => {
     } catch (err) {
       setError(err.message || 'Failed to download video');
     } finally {
-      setIsLoading(false);
+      setIsDownloading(false);
     }
   };
 
@@ -96,6 +141,14 @@ const YtDownloader = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const handleReset = () => {
+    setUrl('');
+    setVideoInfo(null);
+    setSelectedQuality(null);
+    setResult(null);
+    setError('');
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
@@ -114,7 +167,7 @@ const YtDownloader = () => {
         <div className="space-y-6">
           {/* URL Input */}
           <div className="space-y-2">
-            <label htmlFor="youtube-url" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="youtube-url" className="block text-sm font-medium ">
               YouTube URL
             </label>
             <div className="relative">
@@ -127,25 +180,91 @@ const YtDownloader = () => {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://www.youtube.com/watch?v=..."
-                className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
-                disabled={isLoading}
+                className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors text-black"
+                disabled={isLoadingInfo || videoInfo}
               />
             </div>
           </div>
 
-          {/* Download Button */}
-          <button
-            onClick={handleDownload}
-            disabled={isLoading || !url.trim()}
-            className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <Loader className="w-5 h-5 animate-spin" />
-            ) : (
-              <Download className="w-5 h-5" />
-            )}
-            <span>{isLoading ? 'Downloading...' : 'Download Video'}</span>
-          </button>
+          {/* Start Button (shown when no video info loaded) */}
+          {!videoInfo && (
+            <button
+              onClick={handleStart}
+              disabled={isLoadingInfo || !url.trim()}
+              className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoadingInfo ? (
+                <Loader className="w-5 h-5 animate-spin" />
+              ) : (
+                <Play className="w-5 h-5" />
+              )}
+              <span>{isLoadingInfo ? 'Loading...' : 'Start'}</span>
+            </button>
+          )}
+
+          {/* Video Preview (shown after video info loaded) */}
+          {videoInfo && !result && (
+            <div className="space-y-4">
+              {/* Video Thumbnail and Info */}
+              <div className="flex gap-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                {videoInfo.thumbnail && (
+                  <img 
+                    src={videoInfo.thumbnail} 
+                    alt={videoInfo.title}
+                    className="w-40 h-24 object-cover rounded-lg flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 truncate">{videoInfo.title}</h3>
+                  {videoInfo.duration && (
+                    <p className="text-sm text-gray-600 mt-1">Duration: {videoInfo.duration}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Quality Selection */}
+              <div className="space-y-2">
+                <label htmlFor="quality-select" className="block text-sm font-medium text-gray-900">
+                  Select Quality
+                </label>
+                <select
+                  id="quality-select"
+                  value={selectedQuality || ''}
+                  onChange={(e) => setSelectedQuality(e.target.value)}
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors text-black bg-white"
+                >
+                  {videoInfo.formats && videoInfo.formats.map((format) => (
+                    <option key={format.quality} value={format.quality}>
+                      {format.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Download and Reset Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDownload}
+                  disabled={isDownloading || !selectedQuality}
+                  className="flex-1 btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDownloading ? (
+                    <Loader className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Download className="w-5 h-5" />
+                  )}
+                  <span>{isDownloading ? 'Downloading...' : 'Download Video'}</span>
+                </button>
+                <button
+                  onClick={handleReset}
+                  disabled={isDownloading}
+                  className="px-6 py-3 border-2 border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
@@ -173,13 +292,21 @@ const YtDownloader = () => {
                       <span className="font-medium">Size:</span> {formatFileSize(result.sizeBytes)}
                     </p>
                   </div>
-                  <button
-                    onClick={handleDownloadFile}
-                    className="mt-3 inline-flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-600 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download File</span>
-                  </button>
+                  <div className="flex gap-3 mt-3">
+                    <button
+                      onClick={handleDownloadFile}
+                      className="inline-flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-600 transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download File</span>
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="inline-flex items-center space-x-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                    >
+                      <span>Download Another</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
