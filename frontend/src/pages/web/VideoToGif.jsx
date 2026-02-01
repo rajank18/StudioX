@@ -1,621 +1,737 @@
-// // VideoToGif.jsx
-// import React, { useState, useRef, useEffect } from 'react';
-// import { motion } from 'framer-motion';
-// import { Upload, Link2, Play, Pause, Download, Loader, ArrowLeft } from 'lucide-react';
-// import { useNavigate } from 'react-router-dom';
-// import GIF from 'gif.js.optimized'; // make sure: npm install gif.js.optimized
+import React, { useState, useRef } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
+import { Upload, Download, Loader, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 
-// const WORKER_SCRIPT = '/gif.worker.js'; // <-- put gif.worker.js into your public/ folder (or change this path)
+const MAX_BYTES = 500 * 1024 * 1024; // 500 MB, match backend
 
-// const VideoToGif = () => {
-//   const navigate = useNavigate();
-//   const [videoFile, setVideoFile] = useState(null);
-//   const [videoUrl, setVideoUrl] = useState('');
-//   const [currentVideo, setCurrentVideo] = useState(null);
-//   const [videoDuration, setVideoDuration] = useState(0);
-//   const [isPlaying, setIsPlaying] = useState(false);
-//   const [currentTime, setCurrentTime] = useState(0);
-//   const [startTime, setStartTime] = useState(0);
-//   const [endTime, setEndTime] = useState(5);
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [encodeProgress, setEncodeProgress] = useState(0);
-//   const videoRef = useRef(null);
-//   const canvasRef = useRef(null);
-//   const thumbsRef = useRef(null);
-//   const selectionRef = useRef(null);
-//   const [thumbnails, setThumbnails] = useState([]);
-//   const [thumbsError, setThumbsError] = useState(false);
-//   const [startPercent, setStartPercent] = useState(0); // 0..1 for draggable selection
-//   const [dragging, setDragging] = useState(false);
+const VideoToGif = () => {
+  const { getToken } = useAuth();
+  const { user } = useUser();
+  const navigate = useNavigate();
 
-//   // Handle file upload (unchanged)
-//   const handleFileUpload = (e) => {
-//     const file = e.target.files[0];
-//     if (file && file.type.startsWith('video/')) {
-//       setVideoFile(file);
-//       const reader = new FileReader();
-//       reader.onload = (event) => {
-//         setCurrentVideo(event.target.result);
-//       };
-//       reader.readAsDataURL(file);
-//     }
-//   };
+  const [file, setFile] = useState(null);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [startTime, setStartTime] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [resultUrl, setResultUrl] = useState(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
-//   // ======= Edited URL handling: validate before setting as currentVideo =======
-//   // Attempt to verify the provided URL is a direct video resource and playable.
-//   // If validation succeeds, sets currentVideo(url) and clears input.
-//   // If it fails, shows an alert and keeps the URL in input so user can correct it.
-//   const handleUrlSubmit = async () => {
-//     const url = (videoUrl || '').trim();
-//     if (!url) return;
+  const videoRef = useRef(null);
 
-//     // quick rejection for obvious non-file URLs (optional)
-//     const lower = url.toLowerCase();
-//     // If it ends with common container extension, try directly (but still validate)
-//     const likelyFile = /\.(mp4|webm|ogg|mov|m4v|mkv)(\?.*)?$/.test(lower);
+  // Timeline UI refs & state
+  const timelineRef = useRef(null);
+  const selectionRef = useRef(null);
+  const dragRef = useRef({ active: false, startX: 0, startLeft: 0 });
 
-//     // Create an offscreen video element to test the URL
-//     const off = document.createElement('video');
-//     off.muted = true;
-//     off.playsInline = true;
-//     // Try to allow crossOrigin — if server doesn't allow it, canvas read will still fail later.
-//     off.crossOrigin = 'anonymous';
-//     let settled = false;
+  const [thumbnails, setThumbnails] = useState([]);
+  const [thumbsError, setThumbsError] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
-//     const cleanup = () => {
-//       try {
-//         off.pause();
-//         off.src = '';
-//       } catch (e) {}
-//     };
+  // Keep track of the last generated object URL so we can revoke it to free memory
+  const objectUrlRef = useRef(null);
 
-//     const timeoutMs = 7000; // 7 seconds to decide
-//     try {
-//       const result = await new Promise((resolve, reject) => {
-//         const onLoadedMeta = () => {
-//           if (settled) return;
-//           settled = true;
-//           off.removeEventListener('loadedmetadata', onLoadedMeta);
-//           off.removeEventListener('error', onError);
-//           clearTimeout(timer);
-//           resolve({ ok: true, reason: 'loadedmetadata' });
-//         };
-//         const onError = (ev) => {
-//           if (settled) return;
-//           settled = true;
-//           off.removeEventListener('loadedmetadata', onLoadedMeta);
-//           off.removeEventListener('error', onError);
-//           clearTimeout(timer);
-//           // ev may be a MediaError; pass message
-//           const msg = ev && ev.target && ev.target.error && ev.target.error.message
-//             ? ev.target.error.message
-//             : 'Media failed to load';
-//           resolve({ ok: false, reason: 'error', message: msg });
-//         };
-//         const timer = setTimeout(() => {
-//           if (settled) return;
-//           settled = true;
-//           off.removeEventListener('loadedmetadata', onLoadedMeta);
-//           off.removeEventListener('error', onError);
-//           resolve({ ok: false, reason: 'timeout' });
-//         }, timeoutMs);
+  const handleFileChange = (e) => {
+    const f = e.target.files?.[0];
+    setError('');
+    setResultUrl(null);
+    setSuccess(false);
+    if (!f) return;
+    if (!f.type.startsWith('video/')) {
+      setError('Please select a video file');
+      return;
+    }
+    if (f.size > MAX_BYTES) {
+      setError('File is too large (max 500MB)');
+      return;
+    }
+    setFile(f);
+    const url = URL.createObjectURL(f);
+    setVideoUrl(url);
+    setStartTime(0);
+  };
 
-//         off.addEventListener('loadedmetadata', onLoadedMeta, { once: true });
-//         off.addEventListener('error', onError, { once: true });
+  const onLoadedMetadata = () => {
+    const dur = videoRef.current?.duration || 0;
+    setVideoDuration(dur);
+    setStartTime(0);
+    // Ensure timeline width is measured once metadata loads (layout can shift)
+    const el = timelineRef.current;
+    if (el) setTimeout(() => setContainerWidth(Math.floor(el.clientWidth || 0)), 50);
+  };
 
-//         // set src last to start loading
-//         try {
-//           off.src = url;
-//           // Some browsers require load() call
-//           off.load();
-//         } catch (err) {
-//           clearTimeout(timer);
-//           settled = true;
-//           resolve({ ok: false, reason: 'exception', message: String(err) });
-//         }
-//       });
+  const handleConvert = async () => {
+    if (!file) return setError('Please select a video before converting');
+    setError('');
+    setIsLoading(true);
+    setResultUrl(null);
+    setSuccess(false);
 
-//       if (result.ok) {
-//         // URL is playable by <video>. Accept it.
-//         setCurrentVideo(url);
-//         setVideoUrl(''); // clear input now that it's loaded
-//         // cleanup offscreen
-//         cleanup();
-//         return;
-//       } else {
-//         // Not directly playable. Provide helpful message.
-//         // Common scenarios:
-//         // - URL is a YouTube/Vimeo watch page — not a direct file
-//         // - URL is direct but server blocks CORS (video can play in video tag but canvas will fail later)
-//         // - server doesn't return a video at that URL
-//         let friendly = 'Cannot load the provided URL as a direct video file.';
-//         if (result.reason === 'timeout') {
-//           friendly += ' Loading timed out — the URL may be slow or blocked.';
-//         } else if (result.reason === 'error') {
-//           friendly += ` Media error: ${result.message || 'unknown'}.`;
-//         } else if (result.reason === 'exception') {
-//           friendly += ` Error: ${result.message || 'invalid URL'}.`;
-//         }
-//         friendly += '\n\nUse one of:\n• A direct video file URL ending with .mp4/.webm/.ogg (and served with CORS allowed),\n• Upload a local file (recommended),\n• Or provide a downloadable link (server-side) — public watch pages (e.g., YouTube watch pages) will not work here.';
-//         // if likely file extension present, show a hint about CORS
-//         if (likelyFile && !result.ok) {
-//           friendly += '\n\nNote: even if the URL ends with .mp4, the server might block access via CORS. In that case upload the file or enable CORS on the server.';
-//         }
-//         alert(friendly);
-//         cleanup();
-//         return;
-//       }
-//     } catch (err) {
-//       cleanup();
-//       alert('Error validating URL: ' + (err?.message || err));
-//       return;
-//     }
-//   };
+    try {
+      // Only set Authorization header if token available (avoids empty header causing preflight issues)
+      let token = null;
+      try { token = await getToken(); } catch (e) { token = null; }
 
-//   // Update video metadata (unchanged)
-//   useEffect(() => {
-//     if (videoRef.current && currentVideo) {
-//       const handleLoadedMetadata = () => {
-//         const duration = videoRef.current.duration;
-//         setVideoDuration(duration);
-//         setEndTime(Math.min(5, duration));
-//         setStartPercent(0);
-//         setStartTime(0);
-//         // generate thumbnails (best-effort)
-//         generateThumbnails();
-//       };
-//       videoRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
-//       return () => {
-//         videoRef.current?.removeEventListener('loadedmetadata', handleLoadedMetadata);
-//       };
-//     }
-//   }, [currentVideo]);
+      const fd = new FormData();
+      fd.append('video', file);
+      fd.append('startTime', String(Math.max(0, parseFloat(startTime) || 0)));
 
-//   // Generate thumbnails (unchanged)
-//   const generateThumbnails = async () => {
-//     setThumbsError(false);
-//     setThumbnails([]);
-//     if (!currentVideo) return;
-//     try {
-//       const off = document.createElement('video');
-//       off.crossOrigin = 'anonymous';
-//       off.muted = true;
-//       off.src = currentVideo;
-//       await new Promise((res, rej) => {
-//         const onload = () => res();
-//         const onerr = () => rej(new Error('Failed loading offscreen video'));
-//         off.addEventListener('loadedmetadata', onload, { once: true });
-//         off.addEventListener('error', onerr, { once: true });
-//       });
+      const headers = {
+        'X-User-Id': user?.id || '',
+        'X-User-Email': user?.primaryEmailAddress || user?.emailAddresses?.[0]?.emailAddress || ''
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-//       const duration = off.duration || videoDuration || 0;
-//       if (!duration || !isFinite(duration)) return;
+      const res = await fetch('http://localhost:3000/api/video/to-gif', {
+        method: 'POST',
+        headers,
+        body: fd,
+      });
 
-//       const maxThumbs = Math.min(24, Math.max(6, Math.floor(duration)));
-//       const times = [];
-//       for (let i = 0; i < maxThumbs; i++) times.push((i / (maxThumbs - 1)) * duration);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Conversion failed');
 
-//       const thumbCanvas = document.createElement('canvas');
-//       const thumbCtx = thumbCanvas.getContext('2d');
-//       const thumbW = 120;
-//       const thumbH = 68;
-//       thumbCanvas.width = thumbW;
-//       thumbCanvas.height = thumbH;
+      const fullUrl = `http://localhost:3000${data.url}`;
+      setResultUrl(fullUrl);
+      setSuccess(true);
+      setIsLoading(false);
+      // clear selected file so user can start over easily
+      setFile(null);
+      setVideoUrl('');
+    } catch (err) {
+      setError(err.message || 'Conversion error');
+      setIsLoading(false);
+    }
+  };
 
-//       const results = [];
-//       for (const t of times) {
-//         off.currentTime = Math.min(t, duration - 0.01);
-//         await new Promise((res) => {
-//           const onseek = () => {
-//             try {
-//               thumbCtx.drawImage(off, 0, 0, thumbW, thumbH);
-//               const data = thumbCanvas.toDataURL('image/jpeg', 0.6);
-//               results.push(data);
-//             } catch (err) {
-//               console.warn('Thumbnail generation failed (CORS?)', err);
-//               setThumbsError(true);
-//               results.length = 0;
-//             }
-//             off.removeEventListener('seeked', onseek);
-//             setTimeout(res, 10);
-//           };
-//           off.addEventListener('seeked', onseek, { once: true });
-//         });
-//         if (thumbsError) break;
-//       }
-//       setThumbnails(results);
-//     } catch (err) {
-//       console.warn('generateThumbnails error', err);
-//       setThumbsError(true);
-//       setThumbnails([]);
-//     }
-//   };
+  const handleDownload = async () => {
+    if (!resultUrl) return;
+    try {
+      const resp = await fetch(resultUrl);
+      if (!resp.ok) throw new Error('Download failed');
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = resultUrl.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
 
-//   // Keep startTime/endTime in sync when startPercent changes (unchanged)
-//   useEffect(() => {
-//     if (!videoDuration) return;
-//     const newStart = Math.max(0, Math.min(1, startPercent)) * Math.max(0, videoDuration - 5);
-//     setStartTime(newStart);
-//     setEndTime(Math.min(newStart + 5, videoDuration));
-//   }, [startPercent, videoDuration]);
+      // After successful download, reset UI so upload box returns
+      setResultUrl(null);
+      setSuccess(false);
+      setError('');
+      setFile(null);
+      setVideoUrl('');
+    } catch (err) {
+      setError(err.message || 'Failed to download');
+    }
+  };
 
-//   // Pointer handlers (unchanged)
-//   const onPointerDownSelection = (e) => {
-//     if (!thumbsRef.current) return;
-//     e.preventDefault();
-//     setDragging(true);
-//   };
+  // ---------- Timeline helpers & handlers ----------
 
-//   const onPointerMoveSelection = (e) => {
-//     if (!dragging || !thumbsRef.current) return;
-//     const rect = thumbsRef.current.getBoundingClientRect();
-//     const x = e.clientX - rect.left;
-//     let percent = x / rect.width;
-//     const selWidth = videoDuration ? Math.min(1, 5 / videoDuration) : 0;
-//     percent = Math.max(0, Math.min(1 - selWidth, percent));
-//     setStartPercent(percent);
-//   };
+  const formatTime = (seconds) => {
+    const s = Math.max(0, Math.floor(seconds));
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
-//   const onPointerUpSelection = (e) => {
-//     if (!dragging) return;
-//     setDragging(false);
-//   };
+  // Derived layout values
+  // Math explanation:
+  // - selectionWidthPx: width in pixels of the 5-second window on the timeline.
+  //   selectionWidthPx = (5 seconds / videoDuration) * containerWidth. If videoDuration <= 5,
+  //   the window fills the timeline. We enforce a min pixel width for usability.
+  // - startLeftPx: left position (px) of the window = (startTime / videoDuration) * containerWidth,
+  //   clamped so that the window does not overflow the timeline. Corresponding allowed startTime
+  //   range is [0, videoDuration - 5]. The maxLeftPx equals containerWidth - selectionWidthPx.
+  const minSelPx = 56; // minimum px width for the draggable window (for usability)
+  const selectionWidthPx = (() => {
+    if (!containerWidth || !videoDuration) return Math.max(minSelPx, (5 / 5) * minSelPx);
+    if (videoDuration <= 5) return containerWidth; // full timeline
+    return Math.max(minSelPx, (5 / videoDuration) * containerWidth);
+  })();
 
-//   useEffect(() => {
-//     if (dragging) {
-//       window.addEventListener('pointermove', onPointerMoveSelection);
-//       window.addEventListener('pointerup', onPointerUpSelection);
-//     }
-//     return () => {
-//       window.removeEventListener('pointermove', onPointerMoveSelection);
-//       window.removeEventListener('pointerup', onPointerUpSelection);
-//     };
-//   }, [dragging, videoDuration]);
+  const maxLeftPx = Math.max(0, containerWidth - selectionWidthPx);
 
-//   // Update current time as video plays (unchanged)
-//   useEffect(() => {
-//     if (!videoRef.current) return;
-//     const handleTimeUpdate = () => {
-//       setCurrentTime(videoRef.current.currentTime);
-//       if (videoRef.current.currentTime >= endTime) {
-//         videoRef.current.pause();
-//         setIsPlaying(false);
-//       }
-//     };
-//     videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
-//     return () => {
-//       videoRef.current?.removeEventListener('timeupdate', handleTimeUpdate);
-//     };
-//   }, [endTime]);
+  const startLeftPx = (() => {
+    if (!containerWidth || !videoDuration) return 0;
+    if (videoDuration <= 5) return 0;
+    // Map startTime (0 .. videoDuration-5) to left px clamped to [0, maxLeftPx]
+    const ratio = startTime / Math.max(1, videoDuration);
+    const px = ratio * containerWidth;
+    return Math.max(0, Math.min(px, maxLeftPx));
+  })();
 
-//   // Play/Pause control (unchanged)
-//   const togglePlay = () => {
-//     if (videoRef.current) {
-//       if (isPlaying) {
-//         videoRef.current.pause();
-//       } else {
-//         videoRef.current.currentTime = Math.max(startTime, videoRef.current.currentTime);
-//         videoRef.current.play();
-//       }
-//       setIsPlaying(!isPlaying);
-//     }
-//   };
+  const leftOverlayWidth = Math.max(0, startLeftPx);
+  const rightOverlayWidth = Math.max(0, Math.round(containerWidth - (startLeftPx + selectionWidthPx)));
 
-//   // Start/end handlers (unchanged)
-//   const handleStartTimeChange = (value) => {
-//     const newStart = parseFloat(value);
-//     if (newStart < endTime) {
-//       setStartTime(newStart);
-//       if (videoRef.current) videoRef.current.currentTime = newStart;
-//     }
-//   };
-//   const handleEndTimeChange = (value) => {
-//     const newEnd = parseFloat(value);
-//     if (newEnd > startTime && newEnd <= videoDuration) setEndTime(newEnd);
-//   };
+  // Resize observer to track timeline width
+  React.useEffect(() => {
+    const el = timelineRef.current;
+    if (!el) return;
 
-//   // generateGif (unchanged from your final working version)
-//   const generateGif = async () => {
-//     if (!videoRef.current) return;
-//     setIsLoading(true);
-//     setEncodeProgress(0);
+    const update = () => setContainerWidth(Math.floor(el.clientWidth || 0));
+    // Force-measure now and a couple of short retries to ensure layout has settled after video load
+    update();
+    setTimeout(update, 50);
+    setTimeout(update, 150);
 
-//     try {
-//       // 1) Ensure worker script is reachable (common pitfall)
-//       try {
-//         const resp = await fetch(WORKER_SCRIPT, { method: 'HEAD' });
-//         if (!resp.ok) {
-//           throw new Error(`Worker script not reachable (status ${resp.status})`);
-//         }
-//       } catch (err) {
-//         throw new Error(
-//           `Cannot reach gif worker at "${WORKER_SCRIPT}".\nPlace gif.worker.js in your public/ folder or update WORKER_SCRIPT path.\nOriginal: ${err.message}`
-//         );
-//       }
+    let ro;
+    if (window.ResizeObserver) {
+      ro = new ResizeObserver(update);
+      ro.observe(el);
+    } else {
+      window.addEventListener('resize', update);
+    }
 
-//       const video = videoRef.current;
-//       const canvas = canvasRef.current;
-//       const ctx = canvas.getContext('2d');
+    return () => {
+      if (ro) ro.disconnect();
+      else window.removeEventListener('resize', update);
+    };
+  }, [timelineRef, videoUrl, thumbnails.length]);
 
-//       // Choose a safe size for canvas to reduce memory (you can keep original if you want)
-//       const maxWidth = 640;
-//       const vidW = video.videoWidth || 640;
-//       const vidH = video.videoHeight || 360;
-//       if (vidW > maxWidth) {
-//         const ratio = vidH / vidW;
-//         canvas.width = maxWidth;
-//         canvas.height = Math.round(maxWidth * ratio);
-//       } else {
-//         canvas.width = vidW;
-//         canvas.height = vidH;
-//       }
+  // Generate thumbnails across the duration (best-effort). Falls back on failure (CORS).
+  React.useEffect(() => {
+    let cancelled = false;
+    const gen = async () => {
+      setThumbsError(false);
+      setThumbnails([]);
+      if (!videoUrl || !videoDuration || !containerWidth) return;
 
-//       // 2) Extract frames
-//       const fps = 10;
-//       const desiredDuration = Math.max(0.001, endTime - startTime);
-//       const totalFrames = Math.ceil(desiredDuration * fps);
-//       if (totalFrames <= 0) throw new Error('Invalid duration (0 frames).');
+      // Decide how many thumbnails to generate based on width
+      const approxThumbW = 120; // px per thumb
+      const count = Math.max(6, Math.min(24, Math.round(containerWidth / approxThumbW)));
 
-//       const frames = [];
-//       console.log(`[GIF] extracting frames: ${totalFrames} frames @ ${fps}fps`);
-//       for (let i = 0; i < totalFrames; i++) {
-//         const time = startTime + (i / fps);
-//         const seekTime = Math.min(time, endTime - 0.001);
-//         video.currentTime = seekTime;
+      const off = document.createElement('video');
+      off.crossOrigin = 'anonymous';
+      off.muted = true;
+      off.src = videoUrl;
 
-//         // Wait for seek + draw (with timeout)
-//         await new Promise((resolve, reject) => {
-//           let settled = false;
-//           const onSeeked = () => {
-//             try {
-//               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-//               frames.push(canvas.toDataURL('image/png'));
-//               settled = true;
-//               video.removeEventListener('seeked', onSeeked);
-//               resolve();
-//             } catch (err) {
-//               video.removeEventListener('seeked', onSeeked);
-//               reject(err);
-//             }
-//           };
-//           video.addEventListener('seeked', onSeeked, { once: true });
-//           // safety timeout for cross-origin or unsupported cases
-//           setTimeout(() => {
-//             if (!settled) {
-//               video.removeEventListener('seeked', onSeeked);
-//               reject(new Error('Timeout waiting for video seek. If using remote URL, CORS may block reading frames.'));
-//             }
-//           }, 5000);
-//         });
-//       }
+      try {
+        await new Promise((res, rej) => {
+          const onLoaded = () => res();
+          const onErr = () => rej(new Error('Failed to load video for thumbs'));
+          off.addEventListener('loadedmetadata', onLoaded, { once: true });
+          off.addEventListener('error', onErr, { once: true });
+          off.load();
+        });
 
-//       if (frames.length === 0) throw new Error('No frames extracted (CORS or invalid video).');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
 
-//       // 3) Set up GIF encoder
-//       const gif = new GIF({
-//         workers: 2,
-//         workerScript: WORKER_SCRIPT,
-//         quality: 10,
-//         width: canvas.width,
-//         height: canvas.height,
-//       });
+        const thumbH = 72;
+        const thumbW = Math.max(80, Math.round(containerWidth / count));
+        canvas.width = thumbW;
+        canvas.height = thumbH;
 
-//       gif.on('progress', (p) => {
-//         console.log(`[GIF] progress ${(p * 100).toFixed(1)}%`);
-//         setEncodeProgress(p);
-//       });
+        const results = [];
+        for (let i = 0; i < count; i++) {
+          if (cancelled) return;
+          const t = Math.min(videoDuration - 0.01, (i / Math.max(1, count - 1)) * videoDuration);
+          off.currentTime = Math.max(0, t - 0.01);
 
-//       let finished = false;
-//       const finishedPromise = new Promise((resolve, reject) => {
-//         gif.on('finished', (blob) => {
-//           finished = true;
-//           try {
-//             const url = URL.createObjectURL(blob);
-//             const a = document.createElement('a');
-//             a.href = url;
-//             a.download = `video-to-gif-${Date.now()}.gif`;
-//             document.body.appendChild(a);
-//             const evt = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
-//             a.dispatchEvent(evt);
-//             document.body.removeChild(a);
-//             setTimeout(() => URL.revokeObjectURL(url), 5000);
-//             resolve();
-//           } catch (err) {
-//             reject(err);
-//           }
-//         });
+          await new Promise((res, rej) => {
+            const onSeeked = () => {
+              try {
+                ctx.drawImage(off, 0, 0, thumbW, thumbH);
+                results.push(canvas.toDataURL('image/jpeg', 0.6));
+                res();
+              } catch (err) {
+                rej(err);
+              }
+            };
+            const onErr = () => rej(new Error('Seek failed'));
+            off.addEventListener('seeked', onSeeked, { once: true });
+            off.addEventListener('error', onErr, { once: true });
+            // safety timeout for cross-origin or other failures
+            setTimeout(() => rej(new Error('Thumbnail generation timeout')), 3000);
+          }).catch((err) => {
+            // if any frame fails (commonly CORS), stop and fallback
+            console.warn('[VideoToGif] thumbnail generation failed:', err);
+            setThumbsError(true);
+          });
 
-//         gif.on('error', (err) => {
-//           reject(err || new Error('Unknown GIF encoding error'));
-//         });
+          if (thumbsError) break;
+        }
 
-//         gif.on('abort', () => {
-//           reject(new Error('GIF encoding aborted'));
-//         });
-//       });
+        if (!cancelled && !thumbsError) {
+          setThumbnails(results);
+        }
+      } catch (err) {
+        console.warn('[VideoToGif] thumbs error', err);
+        setThumbsError(true);
+      }
+    };
 
-//       // 4) Add frames
-//       for (let i = 0; i < frames.length; i++) {
-//         await new Promise((resolve, reject) => {
-//           const img = new Image();
-//           img.crossOrigin = 'anonymous';
-//           img.onload = () => {
-//             try {
-//               gif.addFrame(img, { delay: Math.round(1000 / fps) });
-//               resolve();
-//             } catch (err) {
-//               reject(err);
-//             }
-//           };
-//           img.onerror = () => {
-//             reject(new Error('Failed to load frame image for encoding. Possibly CORS or corrupt data.'));
-//           };
-//           img.src = frames[i];
-//         });
-//       }
+    gen();
+    return () => { cancelled = true; };
+  }, [videoUrl, videoDuration, containerWidth]);
 
-//       // 5) render
-//       gif.render();
-//       await finishedPromise;
+  // Pointer dragging handlers (declarative handlers only)
+  // Use pointer capture on the selection element and fall back to touch handlers for environments
+  // that don't provide stable PointerEvent support. No manual window addEventListener calls here.
 
-//       console.log('[GIF] done');
-//       setIsLoading(false);
-//       setEncodeProgress(0);
-//     } catch (err) {
-//       console.error('[generateGif] error:', err);
-//       if (String(err).toLowerCase().includes('cors')) {
-//         alert('Error: CORS prevented reading video frames. Use a local upload or a URL with CORS enabled.');
-//       } else {
-//         alert('Error generating GIF: ' + (err?.message || err));
-//       }
-//       setIsLoading(false);
-//       setEncodeProgress(0);
-//     }
-//   };
+  const rafRef = useRef(null);
+  const pendingLeftRef = useRef(null);
+  const activePointerIdRef = useRef(null);
 
-//   const formatTime = (seconds) => {
-//     const mins = Math.floor(seconds / 60);
-//     const secs = (seconds % 60).toFixed(2);
-//     const secsStr = secs.toString().padStart(5, '0');
-//     return `${mins}:${secsStr}`;
-//   };
+  const onPointerDown = (e) => {
+    if (!timelineRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
 
-//   // --- Remainder of your original JSX UI is unchanged ---
-//   return (
-//     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-//       {/* Header */}
-//       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-//         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-//           <div className="flex items-center gap-4">
-//             <button
-//               onClick={() => navigate('/home')}
-//               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-//             >
-//               <ArrowLeft className="w-6 h-6 text-gray-700" />
-//             </button>
-//             <h1 className="text-2xl font-bold text-gray-900">Video to GIF Converter</h1>
-//           </div>
-//         </div>
-//       </div>
+    // Capture this pointer on the selection element so we receive move/up events even if pointer leaves
+    try { selectionRef.current?.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
 
-//       <div className="max-w-7xl mx-auto px-6 py-12">
-//         {!currentVideo ? (
-//           <motion.div
-//             initial={{ opacity: 0, y: 20 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             className="max-w-2xl mx-auto space-y-8"
-//           >
-//             <div className="bg-white rounded-2xl p-8 border border-gray-200 space-y-6">
-//               {/* Upload Section */}
-//               <div className="space-y-4">
-//                 <h2 className="text-xl font-semibold text-gray-900">Upload Video</h2>
-//                 <div className="border-2 border-dashed border-emerald-300 rounded-2xl p-12 text-center hover:border-emerald-500 hover:bg-emerald-50/50 transition-all cursor-pointer group">
-//                   <input
-//                     type="file"
-//                     accept="video/*"
-//                     onChange={handleFileUpload}
-//                     className="hidden"
-//                     id="videoUpload"
-//                   />
-//                   <label htmlFor="videoUpload" className="cursor-pointer block">
-//                     <Upload className="w-16 h-16 text-emerald-600 mx-auto mb-4 group-hover:scale-110 transition-transform" />
-//                     <p className="text-lg text-gray-700 font-semibold mb-1">Click to upload or drag and drop</p>
-//                     <p className="text-sm text-gray-500">MP4, WebM, or other video formats (Max 500MB)</p>
-//                   </label>
-//                 </div>
-//               </div>
+    activePointerIdRef.current = e.pointerId;
+    dragRef.current = { active: true, startX: e.clientX, startLeft: startLeftPx };
+    setIsDragging(true);
+    document.body.style.cursor = 'grabbing';
+  };
 
-//               {/* Divider */}
-//               <div className="flex items-center gap-4">
-//                 <div className="flex-1 h-px bg-gray-300"></div>
-//                 <span className="text-gray-500 font-medium text-sm">OR</span>
-//                 <div className="flex-1 h-px bg-gray-300"></div>
-//               </div>
+  const onPointerMove = (e) => {
+    if (!dragRef.current.active) return;
+    // If pointerId is set, ensure same pointer controls the drag
+    if (activePointerIdRef.current && e.pointerId !== activePointerIdRef.current) return;
+    e.preventDefault();
 
-//               {/* URL Input Section */}
-//               <div className="space-y-4">
-//                 <h2 className="text-xl font-semibold text-gray-900">Video URL</h2>
-//                 <p className="text-sm text-gray-600">Paste a video URL from a public source</p>
-//                 <div className="flex gap-3">
-//                   <input
-//                     type="url"
-//                     placeholder="https://example.com/video.mp4"
-//                     value={videoUrl}
-//                     onChange={(e) => setVideoUrl(e.target.value)}
-//                     onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
-//                     className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-//                   />
-//                   <button
-//                     onClick={handleUrlSubmit}
-//                     className="px-6 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-2"
-//                   >
-//                     <Link2 className="w-5 h-5" />
-//                     Load
-//                   </button>
-//                 </div>
-//               </div>
-//             </div>
+    const dx = e.clientX - dragRef.current.startX;
+    let newLeft = dragRef.current.startLeft + dx;
+    newLeft = Math.max(0, Math.min(newLeft, maxLeftPx));
+    pendingLeftRef.current = newLeft;
 
-//             {/* Info Section */}
-//             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-//               <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200">
-//                 <h3 className="font-semibold text-blue-900 mb-2">About Video to GIF</h3>
-//                 <p className="text-sm text-blue-800">Convert any video to a 5-second GIF. Perfect for social media, presentations, and more.</p>
-//               </div>
-//               <div className="bg-purple-50 rounded-2xl p-6 border border-purple-200">
-//                 <h3 className="font-semibold text-purple-900 mb-2">How it works</h3>
-//                 <p className="text-sm text-purple-800">Upload or paste a video URL, select your 5-second segment, and download your GIF instantly.</p>
-//               </div>
-//             </div>
-//           </motion.div>
-//         ) : (
-//           // ... the rest of the UI (player, trim, actions) remains unchanged from your file.
-//           // For brevity I assume it is identical to what you already have and included above.
-//           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto space-y-8">
-//             {/* Video Player Section */}
-//             <div className="bg-white rounded-2xl p-8 border border-gray-200 space-y-6">
-//               <h2 className="text-xl font-semibold text-gray-900">Video Preview</h2>
-//               <div className="bg-black rounded-xl overflow-hidden">
-//                 <video
-//                   ref={videoRef}
-//                   src={currentVideo}
-//                   className="w-full max-h-96 object-contain"
-//                   onPlay={() => setIsPlaying(true)}
-//                   onPause={() => setIsPlaying(false)}
-//                 />
-//               </div>
-//               {/* ... (rest of controls and UI are unchanged) */}
-//               <div className="flex gap-3 items-center">
-//                 <button
-//                   onClick={() => setCurrentVideo(null)}
-//                   className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-//                 >
-//                   Choose Different Video
-//                 </button>
-//                 <button
-//                   onClick={generateGif}
-//                   disabled={isLoading}
-//                   className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
-//                 >
-//                   {isLoading ? (
-//                     <>
-//                       <Loader className="w-5 h-5 animate-spin" />
-//                       Generating GIF...
-//                     </>
-//                   ) : (
-//                     <>
-//                       <Download className="w-5 h-5" />
-//                       Convert to GIF & Download
-//                     </>
-//                   )}
-//                 </button>
-//               </div>
-//             </div>
-//           </motion.div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
+    if (rafRef.current == null) {
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const left = pendingLeftRef.current;
+        pendingLeftRef.current = null;
+        if (left == null) return;
+        let newStart = (left / Math.max(1, containerWidth)) * videoDuration;
+        newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5)));
+        setStartTime(newStart);
+      });
+    }
+  };
 
-// export default VideoToGif;
+  const onPointerUp = (e) => {
+    if (activePointerIdRef.current && e.pointerId !== activePointerIdRef.current) return;
+    dragRef.current.active = false;
+    activePointerIdRef.current = null;
+    setIsDragging(false);
+    try { selectionRef.current?.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; pendingLeftRef.current = null; }
+    document.body.style.cursor = '';
+  };
+
+  // Touch fallback handlers for environments without PointerEvent support or where touch is unreliable
+  const onTouchStart = (e) => {
+    if (!timelineRef.current) return;
+    const t = e.touches[0];
+    e.preventDefault();
+    e.stopPropagation();
+    activePointerIdRef.current = 'touch';
+    dragRef.current = { active: true, startX: t.clientX, startLeft: startLeftPx };
+    setIsDragging(true);
+    document.body.style.cursor = 'grabbing';
+  };
+
+  const onTouchMove = (e) => {
+    if (!dragRef.current.active) return;
+    const t = e.touches[0];
+    e.preventDefault();
+    const dx = t.clientX - dragRef.current.startX;
+    let newLeft = dragRef.current.startLeft + dx;
+    newLeft = Math.max(0, Math.min(newLeft, maxLeftPx));
+    pendingLeftRef.current = newLeft;
+
+    if (rafRef.current == null) {
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const left = pendingLeftRef.current;
+        pendingLeftRef.current = null;
+        if (left == null) return;
+        let newStart = (left / Math.max(1, containerWidth)) * videoDuration;
+        newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5)));
+        setStartTime(newStart);
+      });
+    }
+  };
+
+  const onTouchEnd = (e) => {
+    dragRef.current.active = false;
+    activePointerIdRef.current = null;
+    setIsDragging(false);
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; pendingLeftRef.current = null; }
+    document.body.style.cursor = '';
+  };
+
+  // Allow quick jump by tapping/clicking timeline background (ignore clicks on selection itself)
+  const onTimelineClick = (e) => {
+    if (!timelineRef.current) return;
+    if (selectionRef.current && selectionRef.current.contains(e.target)) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    // center selection on clicked x
+    const desiredLeft = Math.max(0, Math.min(x - selectionWidthPx / 2, maxLeftPx));
+    const newStart = (desiredLeft / Math.max(1, containerWidth)) * videoDuration;
+    setStartTime(Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5))));
+  };
+
+  // Revoke object URL when the selected file is cleared to free memory
+  React.useEffect(() => {
+    if (objectUrlRef.current && !videoUrl) {
+      try { URL.revokeObjectURL(objectUrlRef.current); } catch (e) {}
+      objectUrlRef.current = null;
+    }
+  }, [videoUrl]);
+
+  // When a local file is selected, store its URL so we can revoke later
+  React.useEffect(() => {
+    if (file && videoUrl && videoUrl.startsWith('blob:')) {
+      objectUrlRef.current = videoUrl;
+    }
+  }, [file, videoUrl]);
+
+  // Keep startTime clamped if videoDuration changes
+  React.useEffect(() => {
+    if (!videoDuration) return;
+    if (videoDuration <= 5) {
+      setStartTime(0);
+    } else {
+      setStartTime((s) => Math.max(0, Math.min(s, videoDuration - 5)));
+    }
+  }, [videoDuration]);
+
+  // Timeline drag state for declarative handlers
+  const timelineDragRef = useRef({ active: false, startX: 0, initialLeft: 0, moved: false, pointerId: null });
+
+  // Timeline pointer/touch handlers
+  // Behavior:
+  // - On pointerdown (outside selection) we start a timeline drag but DO NOT immediately jump.
+  // - If pointer moves beyond a small threshold we treat it as a drag and move the selection continuously.
+  // - On pointerup: if there was no movement it's a tap -> perform jump to center under pointer.
+  const onTimelinePointerDown = (e) => {
+    if (!timelineRef.current) return;
+    // don't initiate timeline drag if user pressed inside selection (selection stops propagation in capture)
+    if (selectionRef.current && selectionRef.current.contains(e.target)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // init drag
+    timelineDragRef.current = { active: true, startX: e.clientX, initialLeft: startLeftPx, moved: false, pointerId: e.pointerId };
+
+    // capture pointer on the timeline so we receive move/up events
+    try { timelineRef.current.setPointerCapture(e.pointerId); } catch (err) {}
+  };
+
+  const onTimelinePointerMove = (e) => {
+    if (!timelineDragRef.current.active) return;
+    if (timelineDragRef.current.pointerId && timelineDragRef.current.pointerId !== e.pointerId) return;
+    e.preventDefault();
+
+    const dx = e.clientX - timelineDragRef.current.startX;
+    if (Math.abs(dx) > 3) timelineDragRef.current.moved = true; // threshold
+
+    let newLeft = timelineDragRef.current.initialLeft + dx;
+    newLeft = Math.max(0, Math.min(newLeft, maxLeftPx));
+
+    // map px to time
+    let newStart = (newLeft / Math.max(1, containerWidth)) * videoDuration;
+    newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5)));
+    setStartTime(newStart);
+  };
+
+  const onTimelinePointerUp = (e) => {
+    if (!timelineDragRef.current.active) return;
+    if (timelineDragRef.current.pointerId && timelineDragRef.current.pointerId !== e.pointerId) return;
+
+    const moved = timelineDragRef.current.moved;
+    const startX = timelineDragRef.current.startX;
+
+    // release pointer capture
+    try { timelineRef.current.releasePointerCapture(e.pointerId); } catch (err) {}
+
+    timelineDragRef.current = { active: false, startX: 0, initialLeft: 0, moved: false, pointerId: null };
+
+    // If it was a tap (no movement), jump to clicked pos
+    if (!moved) {
+      const rect = timelineRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const desiredLeft = Math.max(0, Math.min(x - selectionWidthPx / 2, maxLeftPx));
+      const newStart = (desiredLeft / Math.max(1, containerWidth)) * videoDuration;
+      setStartTime(Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5))));
+    }
+  };
+
+  // Touch fallbacks for timeline
+  const onTimelineTouchStart = (e) => {
+    if (!timelineRef.current) return;
+    if (selectionRef.current && selectionRef.current.contains(e.target)) return;
+    const t = e.touches[0];
+    timelineDragRef.current = { active: true, startX: t.clientX, initialLeft: startLeftPx, moved: false, pointerId: 'touch' };
+  };
+
+  const onTimelineTouchMove = (e) => {
+    if (!timelineDragRef.current.active) return;
+    const t = e.touches[0];
+    const dx = t.clientX - timelineDragRef.current.startX;
+    if (Math.abs(dx) > 3) timelineDragRef.current.moved = true;
+    let newLeft = timelineDragRef.current.initialLeft + dx;
+    newLeft = Math.max(0, Math.min(newLeft, maxLeftPx));
+    let newStart = (newLeft / Math.max(1, containerWidth)) * videoDuration;
+    newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5)));
+    setStartTime(newStart);
+  };
+
+  const onTimelineTouchEnd = (e) => {
+    if (!timelineDragRef.current.active) return;
+    const moved = timelineDragRef.current.moved;
+    timelineDragRef.current = { active: false, startX: 0, initialLeft: 0, moved: false, pointerId: null };
+    if (!moved) {
+      // treat as tap
+      const rect = timelineRef.current.getBoundingClientRect();
+      // use last touch point if available
+      const t = e.changedTouches && e.changedTouches[0];
+      if (!t) return;
+      const x = t.clientX - rect.left;
+      const desiredLeft = Math.max(0, Math.min(x - selectionWidthPx / 2, maxLeftPx));
+      const newStart = (desiredLeft / Math.max(1, containerWidth)) * videoDuration;
+      setStartTime(Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5))));
+    }
+  };
+
+  // ---------- End timeline helpers ----------
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <div className="flex justify-center mb-4">
+          <div className="p-3 bg-primary-50 rounded-full">
+            <Upload className="w-8 h-8 text-primary" />
+          </div>
+        </div>
+        <h1 className="text-3xl font-bold text-gray-900">Video to GIF</h1>
+        <p className="text-gray-600">Upload a short video and convert any 5-second segment into a smooth GIF.</p>
+      </div>
+
+      {/* Main Card */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+        <div className="space-y-6">
+          {/* Upload Section - hidden when a file is selected or when a result is present */}
+          {!(file || videoUrl || resultUrl) && (
+            <div className="space-y-2">
+              <label htmlFor="video-file" className="block text-sm font-medium text-gray-700">Select Video File</label>
+              <div className="relative">
+                <input
+                  id="video-file"
+                  type="file"
+                  accept="video/*"
+                  onChange={handleFileChange}
+                  disabled={isLoading}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="video-file"
+                  className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary-50 transition-colors"
+                >
+                  <div className="text-center">
+                    <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-gray-700">Click to upload a video file</p>
+                    <p className="text-xs text-gray-500">MP4, WebM, MOV supported • Max 500MB</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Video preview & timeline-based 5s selection (responsive) */}
+          {videoUrl && (
+            <div>
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                className="w-full rounded-lg bg-black"
+                controls
+                onLoadedMetadata={onLoadedMetadata}
+              />
+
+              {/* Timeline container */}
+              <div className="mt-4">
+                <div className="text-sm text-gray-700 mb-2 flex items-center justify-between">
+                  <div className="font-medium">Selection: <span className="text-gray-600">{formatTime(startTime)} → {formatTime(Math.min(startTime + 5, videoDuration))}</span></div>
+                  <div className="text-xs text-gray-500">Drag the 5s window to set start time</div>
+                </div>
+
+                <div
+                  ref={timelineRef}
+                  onPointerDown={onTimelinePointerDown}
+                  onPointerMove={onTimelinePointerMove}
+                  onPointerUp={onTimelinePointerUp}
+                  onTouchStart={onTimelineTouchStart}
+                  onTouchMove={onTimelineTouchMove}
+                  onTouchEnd={onTimelineTouchEnd}
+                  className="relative w-full h-28 md:h-24 rounded-lg overflow-hidden bg-gray-100"
+                  style={{ userSelect: 'none', WebkitUserSelect: 'none', touchAction: 'none' }}
+                >
+                  {/* Thumbnails row (fallback to plain bar when thumbsError) */}
+                  {!thumbsError ? (
+                    <div className="absolute inset-0 flex items-stretch">
+                      {thumbnails.length > 0 ? (
+                        thumbnails.map((t, i) => (
+                          <div key={i} style={{ flex: 1 }} className="h-full bg-black/5">
+                            <img src={t} alt={`thumb-${i}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200" />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200" />
+                  )}
+
+                  {/* Dim overlays (left & right unselected areas) */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="left-overlay" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${leftOverlayWidth}px`, background: 'rgba(0,0,0,0.45)' }} />
+                    <div className="right-overlay" style={{ position: 'absolute', left: `${startLeftPx + selectionWidthPx}px`, top: 0, bottom: 0, right: 0, background: 'rgba(0,0,0,0.45)' }} />
+                  </div>
+
+                  {/* Fixed 5s draggable window */}
+                  <div
+                    ref={selectionRef}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
+                    role="slider"
+                    tabIndex={0}
+                    aria-valuemin={0}
+                    aria-valuemax={Math.max(0, videoDuration - 5)}
+                    aria-valuenow={startTime}
+                    className="absolute top-1/2 -translate-y-1/2 h-20 md:h-16 rounded-lg shadow-lg flex items-center justify-center"
+                    style={{
+                      left: startLeftPx + 'px',
+                      width: selectionWidthPx + 'px',
+                      cursor: isDragging ? 'grabbing' : 'grab',
+                      boxShadow: '0 6px 18px rgba(0,0,0,0.18)',
+                      border: '2px solid rgba(255,255,255,0.9)',
+                      background: 'linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+                      backdropFilter: 'blur(2px)',
+                      touchAction: 'none',
+                      zIndex: 50,
+                      pointerEvents: 'auto'
+                    }}
+                    onKeyDown={(ev) => {
+                      // Keyboard nudges: left/right arrows nudge startTime by 0.5s
+                      if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
+                        ev.preventDefault();
+                        const delta = ev.key === 'ArrowLeft' ? -0.5 : 0.5;
+                        setStartTime((s) => Math.max(0, Math.min(s + delta, Math.max(0, videoDuration - 5))));
+                      }
+                    }}
+                    onPointerDownCapture={(ev) => {
+                      // stop propagation in capture phase to ensure timeline doesn't react
+                      ev.stopPropagation();
+                    }}
+                  >
+                    <div className="pointer-events-none text-sm text-white font-medium drop-shadow">{formatTime(startTime)} → {formatTime(Math.min(startTime + 5, videoDuration))}</div>
+
+                    {/* Tooltip while dragging */}
+                    {isDragging && (
+                      <div className="absolute -top-8 px-2 py-1 rounded bg-black text-white text-xs drop-shadow">Start: {formatTime(startTime)} → End: {formatTime(Math.min(startTime + 5, videoDuration))}</div>
+                    )}
+                  </div>
+
+                  {/* Selection touch fallback handlers are attached so touch devices can drag reliably */}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={handleConvert}
+              disabled={isLoading || !file}
+              className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <Loader className="w-5 h-5 animate-spin" />
+              ) : (
+                <Upload className="w-5 h-5" />
+              )}
+              <span>{isLoading ? 'Converting...' : 'Convert to GIF & Download'}</span>
+            </button>
+
+            <button
+              onClick={() => { setFile(null); setVideoUrl(''); setResultUrl(null); setError(''); setSuccess(false); }}
+              className="px-6 py-3 border-2 border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+
+            {resultUrl && (
+              <button onClick={handleDownload} className="ml-auto inline-flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-600 transition-colors">
+                <Download className="w-4 h-4" />
+                <span>Download GIF</span>
+              </button>
+            )}
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-medium text-red-900">Error</h3>
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && resultUrl && (
+            <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-medium text-green-900">Conversion Complete!</h3>
+                <p className="text-sm text-green-700">Your GIF is ready. Preview below or download it.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Result Preview */}
+          {resultUrl && (
+            <div className="mt-4">
+              <h3 className="font-medium mb-2">Result</h3>
+              <img src={resultUrl} alt="result gif" className="w-full rounded shadow" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Info Section */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <h3 className="font-semibold text-blue-900 mb-3">How it works</h3>
+        <ul className="space-y-2 text-sm text-blue-800">
+          <li>• Upload a video file (MP4, WebM, MOV)</li>
+          <li>• Choose the start time for a 5-second GIF</li>
+          <li>• GIF is generated on the server using FFmpeg at 10 FPS</li>
+          <li>• GIFs are available for a short time for download</li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export default VideoToGif;

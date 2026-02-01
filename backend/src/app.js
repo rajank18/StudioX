@@ -11,6 +11,7 @@ const aiTaskRoutes = require('./routes/aiTaskRoutes');
 const billingRoutes = require('./routes/billingRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const silenceRemoverRoutes = require('./routes/silenceRemoverRoutes');
+const videoToGifRoutes = require('./routes/videoToGifRoutes');
 
 const app = express();
 
@@ -45,6 +46,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/tasks', aiTaskRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/video', videoRoutes);
+// Video-to-GIF feature routes
+app.use('/api/video/to-gif', videoToGifRoutes);
 app.use('/api', silenceRemoverRoutes);
 
 app.use((req, res) => {

@@ -9,7 +9,7 @@ import YtDownloader from '../pages/web/YtDownloader';
 import Projects from '../pages/web/Projects';
 import RemoveSilence from '../pages/web/RemoveSilence';
 
-// import VideoToGif from '../pages/web/VideoToGif';
+import VideoToGif from '../pages/web/VideoToGif';
 
 const WebRoutes = () => {
   return (
@@ -67,6 +67,16 @@ const WebRoutes = () => {
           <>
             <SignedIn>
               <RemoveSilence />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/video-to-gif" element={
+          <>
+            <SignedIn>
+              <VideoToGif />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />
