@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Download, Loader, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, Download, Loader, ArrowLeft, CheckCircle, AlertCircle, Link } from 'lucide-react';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB, match backend
 
@@ -18,6 +18,12 @@ const VideoToGif = () => {
   const [resultUrl, setResultUrl] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // YouTube link support
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [isLoadingYt, setIsLoadingYt] = useState(false);
+  // metadata returned from backend after you download the yt video (filename, sizeBytes, etc.)
+  const [ytFileMeta, setYtFileMeta] = useState(null);
 
   const videoRef = useRef(null);
 
@@ -54,6 +60,71 @@ const VideoToGif = () => {
     setStartTime(0);
   };
 
+  // YouTube helpers
+  const validateYouTubeUrl = (url) => {
+    const patterns = [
+      /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)/,
+      /^https?:\/\/(www\.)?youtube\.com\/embed\//,
+      /^https?:\/\/(www\.)?youtube\.com\/v\//
+    ];
+    return patterns.some(pattern => pattern.test(url));
+  };
+
+  const handleUseLink = async () => {
+    if (!youtubeUrl.trim()) return setError('Please enter a YouTube URL');
+    if (!validateYouTubeUrl(youtubeUrl.trim())) return setError('Please enter a valid YouTube URL');
+
+    setError('');
+    setIsLoadingYt(true);
+    setResultUrl(null);
+    setSuccess(false);
+
+    try {
+      // Fetch info first (optional, but gives us formats)
+      const infoRes = await fetch('http://localhost:3000/api/video/youtube/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: youtubeUrl.trim() }),
+      });
+      const infoData = await infoRes.json();
+      if (!infoRes.ok) throw new Error(infoData.error || 'Failed to fetch video info');
+
+      // Choose highest quality by default (first in array)
+      const quality = (infoData.formats && infoData.formats[0] && infoData.formats[0].quality) || null;
+
+      // Request backend to download the video and return a public URL
+      let token = null;
+      try { token = await getToken(); } catch (e) { token = null; }
+
+      const dlRes = await fetch('http://localhost:3000/api/video/youtube/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': user?.id || '',
+          'X-User-Email': user?.primaryEmailAddress || user?.emailAddresses?.[0]?.emailAddress || '',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ url: youtubeUrl.trim(), quality }),
+      });
+
+      const dlData = await dlRes.json();
+      if (!dlRes.ok) throw new Error(dlData.error || 'YouTube download failed');
+
+      const file = dlData.file;
+      const fullUrl = `http://localhost:3000${file.url}`;
+
+      // Use downloaded file for preview/timeline. We do NOT automatically convert here.
+      setVideoUrl(fullUrl);
+      setFile(null);
+      setStartTime(0);
+      setYtFileMeta(file);
+    } catch (err) {
+      setError(err.message || 'YouTube download failed');
+    } finally {
+      setIsLoadingYt(false);
+    }
+  };
+
   const onLoadedMetadata = () => {
     const dur = videoRef.current?.duration || 0;
     setVideoDuration(dur);
@@ -64,7 +135,7 @@ const VideoToGif = () => {
   };
 
   const handleConvert = async () => {
-    if (!file) return setError('Please select a video before converting');
+    if (!file && !videoUrl) return setError('Please select a video or provide a YouTube link before converting');
     setError('');
     setIsLoading(true);
     setResultUrl(null);
@@ -75,8 +146,20 @@ const VideoToGif = () => {
       let token = null;
       try { token = await getToken(); } catch (e) { token = null; }
 
+      // If user provided a YouTube link (downloaded to server and exposed as a public URL),
+      // fetch that file from the server as a Blob and construct a File to send via FormData.
+      let uploadFile = file;
+      if (!uploadFile && videoUrl) {
+        const resp = await fetch(videoUrl);
+        if (!resp.ok) throw new Error('Failed to fetch video from server');
+        const blob = await resp.blob();
+        if (blob.size > MAX_BYTES) throw new Error('File is too large (max 500MB)');
+        const filename = (ytFileMeta && ytFileMeta.filename) || videoUrl.split('/').pop() || 'video.mp4';
+        uploadFile = new File([blob], filename, { type: blob.type || 'video/mp4' });
+      }
+
       const fd = new FormData();
-      fd.append('video', file);
+      fd.append('video', uploadFile);
       fd.append('startTime', String(Math.max(0, parseFloat(startTime) || 0)));
 
       const headers = {
@@ -101,6 +184,8 @@ const VideoToGif = () => {
       // clear selected file so user can start over easily
       setFile(null);
       setVideoUrl('');
+      setYtFileMeta(null);
+      setYoutubeUrl('');
     } catch (err) {
       setError(err.message || 'Conversion error');
       setIsLoading(false);
@@ -549,6 +634,31 @@ const VideoToGif = () => {
                   </div>
                 </label>
               </div>
+
+              {/* YouTube link option */}
+              <div className="mt-3">
+                <label htmlFor="youtube-url" className="block text-sm font-medium text-gray-700">Or paste a YouTube link</label>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    id="youtube-url"
+                    type="url"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                    disabled={isLoading || isLoadingYt}
+                  />
+                  <button
+                    onClick={handleUseLink}
+                    disabled={isLoadingYt || !youtubeUrl.trim()}
+                    className="btn-primary px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  >
+                    {isLoadingYt ? <Loader className="w-4 h-4 animate-spin mr-2" /> : <Link className="w-4 h-4 text-primary" />}
+                    <span className="ml-1">Use link</span>
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">No upload needed — we will download the video and let you choose the 5s segment (max 500MB).</p>
+              </div>
             </div>
           )}
 
@@ -662,7 +772,7 @@ const VideoToGif = () => {
           <div className="flex gap-3 mt-4">
             <button
               onClick={handleConvert}
-              disabled={isLoading || !file}
+              disabled={isLoading || !(file || videoUrl)}
               className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
