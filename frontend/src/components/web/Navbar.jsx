@@ -27,13 +27,13 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`z-50 fixed top-0 left-0 right-0 transition-all duration-500 ease-out ${
+      className={`z-50 fixed top-0 left-0 right-0 transition-all duration-500 ease-out  ${
         isScrolled
           ? 'bg-gray-700 backdrop-blur-md w-[50%] left-[25%] rounded-3xl shadow-sm py-1 mt-2'
           : 'bg-gray-900 backdrop-blur-md py-5 w-full left-0'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between ">
         <button onClick={() => navigate('/')} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
           <img src={logo} alt="StudioX" className="h-10 w-full " />
           {/* <span className="text-2xl font-bold text-gray-50 hover:text-emerald-600 transition-colors">StudioX</span> */}

@@ -14,6 +14,7 @@ const VideoToGif = () => {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoDuration, setVideoDuration] = useState(0);
   const [startTime, setStartTime] = useState(0);
+  const [duration, setDuration] = useState(1); // Selection duration in seconds
   const [isLoading, setIsLoading] = useState(false);
   const [resultUrl, setResultUrl] = useState(null);
   const [error, setError] = useState('');
@@ -58,6 +59,7 @@ const VideoToGif = () => {
     const url = URL.createObjectURL(f);
     setVideoUrl(url);
     setStartTime(0);
+    setDuration(1);
   };
 
   // YouTube helpers
@@ -117,6 +119,7 @@ const VideoToGif = () => {
       setVideoUrl(fullUrl);
       setFile(null);
       setStartTime(0);
+      setDuration(1);
       setYtFileMeta(file);
     } catch (err) {
       setError(err.message || 'YouTube download failed');
@@ -161,6 +164,7 @@ const VideoToGif = () => {
       const fd = new FormData();
       fd.append('video', uploadFile);
       fd.append('startTime', String(Math.max(0, parseFloat(startTime) || 0)));
+      fd.append('duration', String(Math.max(0.1, parseFloat(duration) || 1)));
 
       const headers = {
         'X-User-Id': user?.id || '',
@@ -206,16 +210,34 @@ const VideoToGif = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-
-      // After successful download, reset UI so upload box returns
-      setResultUrl(null);
-      setSuccess(false);
-      setError('');
-      setFile(null);
-      setVideoUrl('');
+      
+      // Don't reset - keep video loaded for more conversions
     } catch (err) {
       setError(err.message || 'Failed to download');
     }
+  };
+
+  const handleNewConversion = () => {
+    setResultUrl(null);
+    setSuccess(false);
+    setError('');
+    setFile(null);
+    setVideoUrl('');
+    setYtFileMeta(null);
+    setYoutubeUrl('');
+    setDuration(1);
+  };
+
+  const handleConvertAnother = () => {
+    setResultUrl(null);
+    setSuccess(false);
+    setError('');
+    setStartTime(0);
+    setDuration(1);
+  };
+
+  const adjustStartTime = (delta) => {
+    setStartTime((s) => Math.max(0, Math.min(s + delta, Math.max(0, videoDuration - duration))));
   };
 
   // ---------- Timeline helpers & handlers ----------
@@ -229,25 +251,25 @@ const VideoToGif = () => {
 
   // Derived layout values
   // Math explanation:
-  // - selectionWidthPx: width in pixels of the 5-second window on the timeline.
-  //   selectionWidthPx = (5 seconds / videoDuration) * containerWidth. If videoDuration <= 5,
+  // - selectionWidthPx: width in pixels of the selection window on the timeline.
+  //   selectionWidthPx = (duration seconds / videoDuration) * containerWidth. If videoDuration <= duration,
   //   the window fills the timeline. We enforce a min pixel width for usability.
   // - startLeftPx: left position (px) of the window = (startTime / videoDuration) * containerWidth,
   //   clamped so that the window does not overflow the timeline. Corresponding allowed startTime
-  //   range is [0, videoDuration - 5]. The maxLeftPx equals containerWidth - selectionWidthPx.
+  //   range is [0, videoDuration - duration]. The maxLeftPx equals containerWidth - selectionWidthPx.
   const minSelPx = 56; // minimum px width for the draggable window (for usability)
   const selectionWidthPx = (() => {
-    if (!containerWidth || !videoDuration) return Math.max(minSelPx, (5 / 5) * minSelPx);
-    if (videoDuration <= 5) return containerWidth; // full timeline
-    return Math.max(minSelPx, (5 / videoDuration) * containerWidth);
+    if (!containerWidth || !videoDuration) return Math.max(minSelPx, (duration / duration) * minSelPx);
+    if (videoDuration <= duration) return containerWidth; // full timeline
+    return Math.max(minSelPx, (duration / videoDuration) * containerWidth);
   })();
 
   const maxLeftPx = Math.max(0, containerWidth - selectionWidthPx);
 
   const startLeftPx = (() => {
     if (!containerWidth || !videoDuration) return 0;
-    if (videoDuration <= 5) return 0;
-    // Map startTime (0 .. videoDuration-5) to left px clamped to [0, maxLeftPx]
+    if (videoDuration <= duration) return 0;
+    // Map startTime (0 .. videoDuration-duration) to left px clamped to [0, maxLeftPx]
     const ratio = startTime / Math.max(1, videoDuration);
     const px = ratio * containerWidth;
     return Math.max(0, Math.min(px, maxLeftPx));
@@ -364,20 +386,35 @@ const VideoToGif = () => {
 
   const rafRef = useRef(null);
   const pendingLeftRef = useRef(null);
+  const pendingDurationRef = useRef(null);
   const activePointerIdRef = useRef(null);
+  const resizeMode = useRef(null); // 'left', 'right', or 'move'
+
+  // Resize handle refs
+  const leftHandleRef = useRef(null);
+  const rightHandleRef = useRef(null);
 
   const onPointerDown = (e) => {
     if (!timelineRef.current) return;
     e.preventDefault();
     e.stopPropagation();
 
+    // Determine if clicking on resize handles
+    if (leftHandleRef.current?.contains(e.target)) {
+      resizeMode.current = 'left';
+    } else if (rightHandleRef.current?.contains(e.target)) {
+      resizeMode.current = 'right';
+    } else {
+      resizeMode.current = 'move';
+    }
+
     // Capture this pointer on the selection element so we receive move/up events even if pointer leaves
     try { selectionRef.current?.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
 
     activePointerIdRef.current = e.pointerId;
-    dragRef.current = { active: true, startX: e.clientX, startLeft: startLeftPx };
+    dragRef.current = { active: true, startX: e.clientX, startLeft: startLeftPx, startDuration: duration };
     setIsDragging(true);
-    document.body.style.cursor = 'grabbing';
+    document.body.style.cursor = resizeMode.current === 'move' ? 'grabbing' : 'ew-resize';
   };
 
   const onPointerMove = (e) => {
@@ -387,19 +424,60 @@ const VideoToGif = () => {
     e.preventDefault();
 
     const dx = e.clientX - dragRef.current.startX;
-    let newLeft = dragRef.current.startLeft + dx;
-    newLeft = Math.max(0, Math.min(newLeft, maxLeftPx));
-    pendingLeftRef.current = newLeft;
+
+    if (resizeMode.current === 'left') {
+      // Left edge resize: adjust startTime and duration
+      const dxTime = (dx / Math.max(1, containerWidth)) * videoDuration;
+      let newStart = Math.max(0, dragRef.current.startLeft / containerWidth * videoDuration + dxTime);
+      let newDuration = dragRef.current.startDuration - dxTime;
+      
+      // Clamp duration to minimum 0.1s and ensure start + duration <= videoDuration
+      newDuration = Math.max(0.1, newDuration);
+      newStart = Math.max(0, Math.min(newStart, videoDuration - 0.1));
+      
+      // Ensure end time doesn't exceed video duration
+      if (newStart + newDuration > videoDuration) {
+        newStart = videoDuration - newDuration;
+      }
+
+      pendingLeftRef.current = newStart;
+      pendingDurationRef.current = newDuration;
+    } else if (resizeMode.current === 'right') {
+      // Right edge resize: adjust duration only
+      const dxTime = (dx / Math.max(1, containerWidth)) * videoDuration;
+      let newDuration = dragRef.current.startDuration + dxTime;
+      const currentStart = dragRef.current.startLeft / containerWidth * videoDuration;
+      
+      // Clamp duration to minimum 0.1s and ensure start + duration <= videoDuration
+      newDuration = Math.max(0.1, Math.min(newDuration, videoDuration - currentStart));
+      
+      pendingDurationRef.current = newDuration;
+    } else {
+      // Move mode: adjust position only
+      let newLeft = dragRef.current.startLeft + dx;
+      const maxLeft = Math.max(0, containerWidth - (duration / videoDuration) * containerWidth);
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      pendingLeftRef.current = newLeft;
+    }
 
     if (rafRef.current == null) {
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
-        const left = pendingLeftRef.current;
+        
+        if (resizeMode.current === 'left') {
+          if (pendingLeftRef.current != null) setStartTime(pendingLeftRef.current);
+          if (pendingDurationRef.current != null) setDuration(pendingDurationRef.current);
+        } else if (resizeMode.current === 'right') {
+          if (pendingDurationRef.current != null) setDuration(pendingDurationRef.current);
+        } else {
+          if (pendingLeftRef.current != null) {
+            const newStart = (pendingLeftRef.current / Math.max(1, containerWidth)) * videoDuration;
+            setStartTime(Math.max(0, Math.min(newStart, videoDuration - duration)));
+          }
+        }
+        
         pendingLeftRef.current = null;
-        if (left == null) return;
-        let newStart = (left / Math.max(1, containerWidth)) * videoDuration;
-        newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5)));
-        setStartTime(newStart);
+        pendingDurationRef.current = null;
       });
     }
   };
@@ -408,9 +486,10 @@ const VideoToGif = () => {
     if (activePointerIdRef.current && e.pointerId !== activePointerIdRef.current) return;
     dragRef.current.active = false;
     activePointerIdRef.current = null;
+    resizeMode.current = null;
     setIsDragging(false);
     try { selectionRef.current?.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; pendingLeftRef.current = null; }
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; pendingLeftRef.current = null; pendingDurationRef.current = null; }
     document.body.style.cursor = '';
   };
 
@@ -420,10 +499,20 @@ const VideoToGif = () => {
     const t = e.touches[0];
     e.preventDefault();
     e.stopPropagation();
+    
+    // Determine if touching resize handles
+    if (leftHandleRef.current?.contains(e.target)) {
+      resizeMode.current = 'left';
+    } else if (rightHandleRef.current?.contains(e.target)) {
+      resizeMode.current = 'right';
+    } else {
+      resizeMode.current = 'move';
+    }
+    
     activePointerIdRef.current = 'touch';
-    dragRef.current = { active: true, startX: t.clientX, startLeft: startLeftPx };
+    dragRef.current = { active: true, startX: t.clientX, startLeft: startLeftPx, startDuration: duration };
     setIsDragging(true);
-    document.body.style.cursor = 'grabbing';
+    document.body.style.cursor = resizeMode.current === 'move' ? 'grabbing' : 'ew-resize';
   };
 
   const onTouchMove = (e) => {
@@ -431,19 +520,47 @@ const VideoToGif = () => {
     const t = e.touches[0];
     e.preventDefault();
     const dx = t.clientX - dragRef.current.startX;
-    let newLeft = dragRef.current.startLeft + dx;
-    newLeft = Math.max(0, Math.min(newLeft, maxLeftPx));
-    pendingLeftRef.current = newLeft;
+
+    if (resizeMode.current === 'left') {
+      const dxTime = (dx / Math.max(1, containerWidth)) * videoDuration;
+      let newStart = Math.max(0, dragRef.current.startLeft / containerWidth * videoDuration + dxTime);
+      let newDuration = dragRef.current.startDuration - dxTime;
+      newDuration = Math.max(0.1, newDuration);
+      newStart = Math.max(0, Math.min(newStart, videoDuration - 0.1));
+      if (newStart + newDuration > videoDuration) {
+        newStart = videoDuration - newDuration;
+      }
+      pendingLeftRef.current = newStart;
+      pendingDurationRef.current = newDuration;
+    } else if (resizeMode.current === 'right') {
+      const dxTime = (dx / Math.max(1, containerWidth)) * videoDuration;
+      let newDuration = dragRef.current.startDuration + dxTime;
+      const currentStart = dragRef.current.startLeft / containerWidth * videoDuration;
+      newDuration = Math.max(0.1, Math.min(newDuration, videoDuration - currentStart));
+      pendingDurationRef.current = newDuration;
+    } else {
+      let newLeft = dragRef.current.startLeft + dx;
+      const maxLeft = Math.max(0, containerWidth - (duration / videoDuration) * containerWidth);
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      pendingLeftRef.current = newLeft;
+    }
 
     if (rafRef.current == null) {
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
-        const left = pendingLeftRef.current;
+        if (resizeMode.current === 'left') {
+          if (pendingLeftRef.current != null) setStartTime(pendingLeftRef.current);
+          if (pendingDurationRef.current != null) setDuration(pendingDurationRef.current);
+        } else if (resizeMode.current === 'right') {
+          if (pendingDurationRef.current != null) setDuration(pendingDurationRef.current);
+        } else {
+          if (pendingLeftRef.current != null) {
+            const newStart = (pendingLeftRef.current / Math.max(1, containerWidth)) * videoDuration;
+            setStartTime(Math.max(0, Math.min(newStart, videoDuration - duration)));
+          }
+        }
         pendingLeftRef.current = null;
-        if (left == null) return;
-        let newStart = (left / Math.max(1, containerWidth)) * videoDuration;
-        newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5)));
-        setStartTime(newStart);
+        pendingDurationRef.current = null;
       });
     }
   };
@@ -451,8 +568,9 @@ const VideoToGif = () => {
   const onTouchEnd = (e) => {
     dragRef.current.active = false;
     activePointerIdRef.current = null;
+    resizeMode.current = null;
     setIsDragging(false);
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; pendingLeftRef.current = null; }
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; pendingLeftRef.current = null; pendingDurationRef.current = null; }
     document.body.style.cursor = '';
   };
 
@@ -483,15 +601,15 @@ const VideoToGif = () => {
     }
   }, [file, videoUrl]);
 
-  // Keep startTime clamped if videoDuration changes
+  // Keep startTime clamped if videoDuration or duration changes
   React.useEffect(() => {
     if (!videoDuration) return;
-    if (videoDuration <= 5) {
+    if (videoDuration <= duration) {
       setStartTime(0);
     } else {
-      setStartTime((s) => Math.max(0, Math.min(s, videoDuration - 5)));
+      setStartTime((s) => Math.max(0, Math.min(s, videoDuration - duration)));
     }
-  }, [videoDuration]);
+  }, [videoDuration, duration]);
 
   // Timeline drag state for declarative handlers
   const timelineDragRef = useRef({ active: false, startX: 0, initialLeft: 0, moved: false, pointerId: null });
@@ -529,7 +647,7 @@ const VideoToGif = () => {
 
     // map px to time
     let newStart = (newLeft / Math.max(1, containerWidth)) * videoDuration;
-    newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5)));
+    newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - duration)));
     setStartTime(newStart);
   };
 
@@ -551,7 +669,7 @@ const VideoToGif = () => {
       const x = e.clientX - rect.left;
       const desiredLeft = Math.max(0, Math.min(x - selectionWidthPx / 2, maxLeftPx));
       const newStart = (desiredLeft / Math.max(1, containerWidth)) * videoDuration;
-      setStartTime(Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5))));
+      setStartTime(Math.max(0, Math.min(newStart, Math.max(0, videoDuration - duration))));
     }
   };
 
@@ -571,7 +689,7 @@ const VideoToGif = () => {
     let newLeft = timelineDragRef.current.initialLeft + dx;
     newLeft = Math.max(0, Math.min(newLeft, maxLeftPx));
     let newStart = (newLeft / Math.max(1, containerWidth)) * videoDuration;
-    newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5)));
+    newStart = Math.max(0, Math.min(newStart, Math.max(0, videoDuration - duration)));
     setStartTime(newStart);
   };
 
@@ -588,7 +706,7 @@ const VideoToGif = () => {
       const x = t.clientX - rect.left;
       const desiredLeft = Math.max(0, Math.min(x - selectionWidthPx / 2, maxLeftPx));
       const newStart = (desiredLeft / Math.max(1, containerWidth)) * videoDuration;
-      setStartTime(Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5))));
+      setStartTime(Math.max(0, Math.min(newStart, Math.max(0, videoDuration - duration))));
     }
   };
 
@@ -604,7 +722,7 @@ const VideoToGif = () => {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">Video to GIF</h1>
-        <p className="text-gray-600">Upload a short video and convert any 5-second segment into a smooth GIF.</p>
+        <p className="text-gray-600">Upload a video and convert any segment into a smooth GIF.</p>
       </div>
 
       {/* Main Card */}
@@ -657,7 +775,7 @@ const VideoToGif = () => {
                     <span className="ml-1">Use link</span>
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">No upload needed — we will download the video and let you choose the 5s segment (max 500MB).</p>
+                
               </div>
             </div>
           )}
@@ -676,8 +794,8 @@ const VideoToGif = () => {
               {/* Timeline container */}
               <div className="mt-4">
                 <div className="text-sm text-gray-700 mb-2 flex items-center justify-between">
-                  <div className="font-medium">Selection: <span className="text-gray-600">{formatTime(startTime)} → {formatTime(Math.min(startTime + 5, videoDuration))}</span></div>
-                  <div className="text-xs text-gray-500">Drag the 5s window to set start time</div>
+                  <div className="font-medium">Selection: <span className="text-gray-600">{formatTime(startTime)} → {formatTime(Math.min(startTime + duration, videoDuration))}</span></div>
+                  <div className="text-xs text-gray-500">Drag edges to resize, center to move</div>
                 </div>
 
                 <div
@@ -714,7 +832,7 @@ const VideoToGif = () => {
                     <div className="right-overlay" style={{ position: 'absolute', left: `${startLeftPx + selectionWidthPx}px`, top: 0, bottom: 0, right: 0, background: 'rgba(0,0,0,0.45)' }} />
                   </div>
 
-                  {/* Fixed 5s draggable window */}
+                  {/* Fixed 5s draggable window with arrow controls */}
                   <div
                     ref={selectionRef}
                     onPointerDown={onPointerDown}
@@ -726,17 +844,17 @@ const VideoToGif = () => {
                     role="slider"
                     tabIndex={0}
                     aria-valuemin={0}
-                    aria-valuemax={Math.max(0, videoDuration - 5)}
+                    aria-valuemax={Math.max(0, videoDuration - duration)}
                     aria-valuenow={startTime}
-                    className="absolute top-1/2 -translate-y-1/2 h-20 md:h-16 rounded-lg shadow-lg flex items-center justify-center"
+                    className="absolute top-1/2 -translate-y-1/2 h-20 md:h-16 rounded-lg shadow-lg flex items-center justify-between group"
                     style={{
                       left: startLeftPx + 'px',
                       width: selectionWidthPx + 'px',
                       cursor: isDragging ? 'grabbing' : 'grab',
                       boxShadow: '0 6px 18px rgba(0,0,0,0.18)',
-                      border: '2px solid rgba(255,255,255,0.9)',
-                      background: 'linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
-                      backdropFilter: 'blur(2px)',
+                      border: '3px solid #ff914c',
+                      background: 'linear-gradient(90deg, rgba(255,145,76,0.2), rgba(255,145,76,0.1))',
+                      backdropFilter: 'blur(4px)',
                       touchAction: 'none',
                       zIndex: 50,
                       pointerEvents: 'auto'
@@ -746,7 +864,7 @@ const VideoToGif = () => {
                       if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
                         ev.preventDefault();
                         const delta = ev.key === 'ArrowLeft' ? -0.5 : 0.5;
-                        setStartTime((s) => Math.max(0, Math.min(s + delta, Math.max(0, videoDuration - 5))));
+                        setStartTime((s) => Math.max(0, Math.min(s + delta, Math.max(0, videoDuration - duration))));
                       }
                     }}
                     onPointerDownCapture={(ev) => {
@@ -754,49 +872,142 @@ const VideoToGif = () => {
                       ev.stopPropagation();
                     }}
                   >
-                    <div className="pointer-events-none text-sm text-white font-medium drop-shadow">{formatTime(startTime)} → {formatTime(Math.min(startTime + 5, videoDuration))}</div>
+                    {/* Left resize handle */}
+                    <div
+                      ref={leftHandleRef}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        resizeMode.current = 'left';
+                        onPointerDown(e);
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        resizeMode.current = 'left';
+                        onTouchStart(e);
+                      }}
+                      className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize bg-primary/70 hover:bg-primary/90 transition-colors z-30 flex items-center justify-center"
+                      style={{ pointerEvents: 'auto' }}
+                      title="Drag to resize from left"
+                    >
+                      <div className="w-0.5 h-8 bg-white/80 rounded"></div>
+                    </div>
+
+                    {/* Center time display */}
+                    <div className="flex-1 text-center pointer-events-none text-sm text-white font-semibold drop-shadow-lg">
+                      {formatTime(startTime)} → {formatTime(Math.min(startTime + duration, videoDuration))}
+                    </div>
+
+                    {/* Right resize handle */}
+                    <div
+                      ref={rightHandleRef}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        resizeMode.current = 'right';
+                        onPointerDown(e);
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        resizeMode.current = 'right';
+                        onTouchStart(e);
+                      }}
+                      className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize bg-primary/70 hover:bg-primary/90 transition-colors z-30 flex items-center justify-center"
+                      style={{ pointerEvents: 'auto' }}
+                      title="Drag to resize from right"
+                    >
+                      <div className="w-0.5 h-8 bg-white/80 rounded"></div>
+                    </div>
 
                     {/* Tooltip while dragging */}
                     {isDragging && (
-                      <div className="absolute -top-8 px-2 py-1 rounded bg-black text-white text-xs drop-shadow">Start: {formatTime(startTime)} → End: {formatTime(Math.min(startTime + 5, videoDuration))}</div>
+                      <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-3 py-1 rounded-lg bg-gray-900 text-white text-xs font-medium drop-shadow-xl whitespace-nowrap">
+                        {formatTime(startTime)} → {formatTime(Math.min(startTime + duration, videoDuration))}
+                      </div>
                     )}
                   </div>
 
                   {/* Selection touch fallback handlers are attached so touch devices can drag reliably */}
+                </div>
+
+                {/* Timeline seconds ruler */}
+                <div className="relative w-full h-6 mt-1">
+                  <div className="absolute inset-0 flex items-center justify-between text-xs text-gray-500 font-mono">
+                    {Array.from({ length: Math.min(Math.floor(videoDuration) + 1, 61) }, (_, i) => {
+                      const shouldShow = videoDuration <= 20 ? true : i % 5 === 0;
+                      if (!shouldShow) return null;
+                      
+                      const leftPercent = (i / Math.max(1, videoDuration)) * 100;
+                      const isLast = leftPercent >= 95; // Last marker near the end
+                      const isFirst = leftPercent <= 5; // First marker near the start
+                      
+                      return (
+                        <div
+                          key={i}
+                          className="absolute flex flex-col items-center"
+                          style={{ 
+                            left: isLast ? 'auto' : (isFirst ? '0' : `${leftPercent}%`),
+                            right: isLast ? '0' : 'auto',
+                            transform: isLast || isFirst ? 'none' : 'translateX(-50%)'
+                          }}
+                        >
+                          <div className="w-px h-2 bg-gray-400 mb-0.5"></div>
+                          <span>{i}s</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={handleConvert}
-              disabled={isLoading || !(file || videoUrl)}
-              className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <Loader className="w-5 h-5 animate-spin" />
-              ) : (
-                <Upload className="w-5 h-5" />
-              )}
-              <span>{isLoading ? 'Converting...' : 'Convert to GIF & Download'}</span>
-            </button>
+          {!resultUrl ? (
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleConvert}
+                disabled={isLoading || !(file || videoUrl)}
+                className="flex-1 btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <Loader className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Upload className="w-5 h-5" />
+                )}
+                <span>{isLoading ? 'Converting...' : 'Convert to GIF'}</span>
+              </button>
 
-            <button
-              onClick={() => { setFile(null); setVideoUrl(''); setResultUrl(null); setError(''); setSuccess(false); }}
-              className="px-6 py-3 border-2 border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-
-            {resultUrl && (
-              <button onClick={handleDownload} className="ml-auto inline-flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-600 transition-colors">
-                <Download className="w-4 h-4" />
+              <button
+                onClick={handleNewConversion}
+                className="px-6 py-3 border-2 border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleDownload}
+                className="flex-1 btn-primary flex items-center justify-center space-x-2"
+              >
+                <Download className="w-5 h-5" />
                 <span>Download GIF</span>
               </button>
-            )}
-          </div>
+              
+              <button
+                onClick={handleConvertAnother}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+              >
+                Convert Another Segment
+              </button>
+
+              <button
+                onClick={handleNewConversion}
+                className="px-6 py-3 border-2 border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                New Video
+              </button>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
@@ -835,7 +1046,7 @@ const VideoToGif = () => {
         <h3 className="font-semibold text-blue-900 mb-3">How it works</h3>
         <ul className="space-y-2 text-sm text-blue-800">
           <li>• Upload a video file (MP4, WebM, MOV)</li>
-          <li>• Choose the start time for a 5-second GIF</li>
+          <li>• Choose the segment by resizing and moving the selection box</li>
           <li>• GIF is generated on the server using FFmpeg at 10 FPS</li>
           <li>• GIFs are available for a short time for download</li>
         </ul>
