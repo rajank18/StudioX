@@ -8,8 +8,8 @@ import Home from '../pages/web/Home';
 import YtDownloader from '../pages/web/YtDownloader';
 import Projects from '../pages/web/Projects';
 import RemoveSilence from '../pages/web/RemoveSilence';
-
 import VideoToGif from '../pages/web/VideoToGif';
+import NoiseReduction from '../pages/web/NoiseReduction';
 
 const WebRoutes = () => {
   return (
@@ -77,6 +77,16 @@ const WebRoutes = () => {
           <>
             <SignedIn>
               <VideoToGif />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/noise-reduction" element={
+          <>
+            <SignedIn>
+              <NoiseReduction />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />

@@ -107,20 +107,20 @@ async function downloadVideo(url, userId, options = {}) {
   const outTemplate = path.join(sessionDir, '%(title)s_%(id)s.%(ext)s');
 
   try {
-    // Detect if ffmpeg is available to decide format strategy
-    const ffmpegCheck = spawnSync('ffmpeg', ['-version'], { windowsHide: true });
-    const hasFfmpeg = ffmpegCheck.status === 0;
+    // Get ffmpeg path for yt-dlp
+    const ffmpegPath = require('ffmpeg-static');
+    const ffprobePath = require('ffprobe-static').path;
 
-    // Build format string based on quality selection
-    // Avoid HLS formats (m3u8) that are getting 403 errors
+    // Build format string - use simpler format to avoid YouTube blocks
     let formatString;
     if (quality !== 'best') {
       const heightMap = { '360p': 360, '480p': 480, '720p': 720, '1080p': 1080 };
       const targetHeight = heightMap[quality] || 720;
-      // Force non-HLS progressive downloads
-      formatString = `bestvideo[height<=${targetHeight}][ext=mp4][protocol^=https]+bestaudio[ext=m4a]/best[height<=${targetHeight}][ext=mp4][protocol^=https]/best[height<=${targetHeight}]`;
+      // Simplified format selector that works better with current YouTube
+      formatString = `bestvideo[height<=${targetHeight}]+bestaudio/best[height<=${targetHeight}]/best`;
     } else {
-      formatString = 'bestvideo[ext=mp4][protocol^=https]+bestaudio[ext=m4a]/best[ext=mp4][protocol^=https]/best';
+      // Use simple best format without protocol restrictions
+      formatString = 'bestvideo+bestaudio/best';
     }
 
     const dlOptions = {
@@ -128,12 +128,20 @@ async function downloadVideo(url, userId, options = {}) {
       mergeOutputFormat: format,
       preferFreeFormats: true,
       noCheckCertificates: true,
+      ffmpegLocation: path.dirname(ffmpegPath),
+      // Use android client to bypass signature verification and n-param challenges
+      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+      noCallHome: true,
+      extractorRetries: 3,
     };
 
-    // Get video info first for title and duration
+    // Get video info first for title and duration - skip ads
     const videoInfo = await ytDlp(url, {
       dumpJson: true,
-      quiet: true,
+      skipDownload: true,
+      noCallHome: true,
+      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+      extractorRetries: 3,
     }, { ytDlpPath: YT_DLP_PATH });
 
     const title = videoInfo.title || 'Unknown Video';

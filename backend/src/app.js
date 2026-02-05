@@ -12,6 +12,7 @@ const billingRoutes = require('./routes/billingRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const silenceRemoverRoutes = require('./routes/silenceRemoverRoutes');
 const videoToGifRoutes = require('./routes/videoToGifRoutes');
+const noiseReductionRoutes = require('./routes/noiseReductionRoutes');
 
 const app = express();
 
@@ -27,13 +28,30 @@ app.use(express.urlencoded({ extended: true }));
 app.use(clerkAuth);
 app.use(ensureUserExists);
 
-// Serve downloaded files from src/temp/uploads with proper headers
+// Serve uploaded/processed files from both uploads and outputs directories
 app.use('/uploads', express.static(path.join(__dirname, 'temp', 'uploads'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.mp4') || filePath.endsWith('.webm') || filePath.endsWith('.mov') || filePath.endsWith('.gif')) {
+      res.setHeader('Accept-Ranges', 'bytes');
+      if (filePath.endsWith('.gif')) {
+        res.setHeader('Content-Type', 'image/gif');
+      } else {
+        res.setHeader('Content-Type', 'video/mp4');
+      }
+      // Allow inline playback, not forced download
+      res.setHeader('Content-Disposition', 'inline');
+    }
+  }
+}));
+
+// Serve processed files from outputs directory
+app.use('/uploads', express.static(path.join(__dirname, 'temp', 'outputs'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.mp4') || filePath.endsWith('.webm') || filePath.endsWith('.mov')) {
       res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Content-Type', 'video/mp4');
-      res.setHeader('Content-Disposition', 'attachment'); // Force download
+      // Allow inline playback, not forced download
+      res.setHeader('Content-Disposition', 'inline');
     }
   }
 }));
@@ -42,12 +60,34 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Download endpoint with forced download headers
+app.get('/download/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const uploadsPath = path.join(__dirname, 'temp', 'uploads', filename);
+  const outputsPath = path.join(__dirname, 'temp', 'outputs', filename);
+  
+  let filePath;
+  if (fs.existsSync(uploadsPath)) {
+    filePath = uploadsPath;
+  } else if (fs.existsSync(outputsPath)) {
+    filePath = outputsPath;
+  } else {
+    return res.status(404).json({ error: 'File not found' });
+  }
+  
+  res.setHeader('Content-Type', 'video/mp4');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.download(filePath);
+});
+
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', aiTaskRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/video', videoRoutes);
 // Video-to-GIF feature routes
 app.use('/api/video/to-gif', videoToGifRoutes);
+// Noise reduction feature routes
+app.use('/api/noise-reduction', noiseReductionRoutes);
 app.use('/api', silenceRemoverRoutes);
 
 app.use((req, res) => {

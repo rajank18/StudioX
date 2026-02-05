@@ -22,7 +22,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   ];
 
   const basicTools = [
-    { name: 'Video to GIF', path: '/tools/video-to-gif' },
+    { name: 'Video to GIF', path: '/video-to-gif' },
+    { name: 'Noise Reduction', path: '/noise-reduction' },
     { name: 'Video Crop', path: '/tools/crop' },
   ];
 
