@@ -10,6 +10,7 @@ import Projects from '../pages/web/Projects';
 import RemoveSilence from '../pages/web/RemoveSilence';
 import VideoToGif from '../pages/web/VideoToGif';
 import NoiseReduction from '../pages/web/NoiseReduction';
+import ThumbnailGenerator from '../pages/web/ThumbnailGenerator';
 
 const WebRoutes = () => {
   return (
@@ -87,6 +88,16 @@ const WebRoutes = () => {
           <>
             <SignedIn>
               <NoiseReduction />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/thumbnail-generator" element={
+          <>
+            <SignedIn>
+              <ThumbnailGenerator />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />

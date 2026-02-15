@@ -3,6 +3,7 @@ const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const ffprobePath = require('ffprobe-static').path;
+const prisma = require('../config/prisma');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
@@ -20,7 +21,7 @@ async function probeDuration(filePath) {
   });
 }
 
-async function convertToGif(inputPath, startTime = 0, duration = 1) {
+async function convertToGif(inputPath, startTime = 0, duration = 1, userId = null, originalTitle = 'Video to GIF') {
   const id = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   const palettePath = path.join(uploadDir, `${id}_palette.png`);
   const outputFile = `gif_${id}.gif`;
@@ -61,13 +62,42 @@ async function convertToGif(inputPath, startTime = 0, duration = 1) {
   // cleanup palette file
   try { fs.unlinkSync(palettePath); } catch (e) {}
 
+  const fileSize = fs.statSync(outputPath).size;
+  const publicUrl = `/uploads/${outputFile}`;
+
+  // Save to database if userId provided
+  let videoRecord = null;
+  if (userId) {
+    try {
+      videoRecord = await prisma.videoDownload.create({
+        data: {
+          userId,
+          title: originalTitle,
+          originalUrl: '',
+          filename: outputFile,
+          filePath: outputPath,
+          publicUrl,
+          fileSize,
+          duration: `${duration.toFixed(1)}s`,
+          service: 'video-to-gif',
+        },
+      });
+    } catch (err) {
+      console.error('Failed to save GIF to database:', err);
+    }
+  }
+
   // schedule cleanup of GIF after 10 minutes
   setTimeout(() => {
     try { fs.unlinkSync(outputPath); } catch (e) {}
   }, 1000 * 60 * 10);
 
-  const publicUrl = `/uploads/${outputFile}`;
-  return { outputPath, publicUrl, filename: outputFile };
+  return { 
+    outputPath, 
+    publicUrl, 
+    filename: outputFile,
+    videoId: videoRecord?.id 
+  };
 }
 
 module.exports = { probeDuration, convertToGif };

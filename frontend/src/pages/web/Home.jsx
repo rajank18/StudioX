@@ -57,10 +57,10 @@ const Home = () => {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           {[
-            { label: 'Videos Processed', value: '0', color: 'text-blue-600' },
-            { label: 'Total Duration', value: '0m', color: 'text-purple-600' },
+            { label: 'Videos Processed', value: '0', color: 'text-[#ff914c]' },
+            { label: 'Total Duration', value: '0m', color: 'text-[#ff914c]' },
             { label: 'Credits Left', value: '10,000', color: 'text-[#ff914c]' },
-            { label: 'Projects', value: '0', color: 'text-orange-600' }
+            { label: 'Projects', value: '0', color: 'text-[#ff914c]' }
           ].map((stat, idx) => (
             <motion.div
               key={idx}
@@ -83,6 +83,7 @@ const Home = () => {
               const Icon = tool.icon;
               return (
                 <motion.button
+                  style={{ cursor: 'pointer' }}
                   key={idx}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -95,6 +96,8 @@ const Home = () => {
                       navigate('/yt-downloader');
                     } else if (tool.title === "Silence Remover") {
                       navigate('/remove-silence');
+                    } else if (tool.title === "Noise Reduction") {
+                      navigate('/noise-reduction');
                     }
                   }}
                   className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-primary hover:shadow-lg transition-all text-left group"

@@ -12,6 +12,8 @@ const processCustom = asyncHandler(async (req, res) => {
   }
 
   const inputPath = req.file.path;
+  const userId = req.auth?.userId || req.headers['x-user-id'];
+  const originalFilename = req.file.originalname;
   
   try {
     // Verify video has audio
@@ -45,7 +47,8 @@ const processCustom = asyncHandler(async (req, res) => {
     console.log(`[noiseReduction] Processing with NR=${noiseReduction}, VE=${voiceEnhancement}`);
 
     // Process video
-    const { publicUrl, filename } = await applyNoiseReduction(inputPath, noiseReduction, voiceEnhancement);
+    const title = `Noise Reduced - ${originalFilename}`;
+    const { publicUrl, filename, videoId } = await applyNoiseReduction(inputPath, noiseReduction, voiceEnhancement, userId, title);
 
     // Remove input video after successful processing
     try { fs.unlinkSync(inputPath); } catch (e) {}
@@ -53,6 +56,7 @@ const processCustom = asyncHandler(async (req, res) => {
     return res.status(200).json({ 
       url: publicUrl, 
       filename,
+      videoId,
       settings: {
         noiseReduction,
         voiceEnhancement
@@ -78,6 +82,8 @@ const processPreset = asyncHandler(async (req, res) => {
   }
 
   const inputPath = req.file.path;
+  const userId = req.auth?.userId || req.headers['x-user-id'];
+  const originalFilename = req.file.originalname;
   
   try {
     // Verify video has audio
@@ -104,7 +110,8 @@ const processPreset = asyncHandler(async (req, res) => {
     console.log(`[noiseReduction] Processing with preset: ${preset}`);
 
     // Process video with preset
-    const { publicUrl, filename } = await applyPreset(inputPath, preset);
+    const title = `Noise Reduced (${preset}) - ${originalFilename}`;
+    const { publicUrl, filename, videoId } = await applyPreset(inputPath, preset, userId, title);
 
     // Remove input video after successful processing
     try { fs.unlinkSync(inputPath); } catch (e) {}
@@ -112,6 +119,7 @@ const processPreset = asyncHandler(async (req, res) => {
     return res.status(200).json({ 
       url: publicUrl, 
       filename,
+      videoId,
       preset
     });
   } catch (err) {

@@ -3,9 +3,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const logger = require('../utils/logger');
 const ytDlp = require('yt-dlp-exec');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../config/prisma');
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'temp', 'uploads');
 
@@ -231,49 +229,168 @@ async function downloadVideo(url, userId, options = {}) {
 }
 
 /**
- * Get all video downloads for a user
+ * Get all video downloads for a user (includes all services)
  */
 async function getUserVideos(userId) {
-  return await prisma.videoDownload.findMany({
+  // Get video downloads (YouTube, noise reduction, video-to-gif)
+  const videoDownloads = await prisma.videoDownload.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
   });
+
+  // Get silence remover tasks
+  const silenceTasks = await prisma.silenceRemoverTask.findMany({
+    where: { 
+      userId,
+      status: 'completed' // Only show completed tasks
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // Transform silence tasks to match video download format
+  const transformedSilenceTasks = silenceTasks.map(task => ({
+    id: task.id,
+    userId: task.userId,
+    title: `Silence Removed - ${task.inputFileName}`,
+    originalUrl: '',
+    filename: task.outputFileName,
+    filePath: task.outputFilePath,
+    publicUrl: `/uploads/${task.outputFileName}`,
+    fileSize: 0, // Not tracked for silence remover
+    duration: task.processedDuration,
+    thumbnail: null,
+    service: 'silence-remover',
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+  }));
+
+  // Combine and sort by creation date
+  const allActivities = [...videoDownloads, ...transformedSilenceTasks]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  return allActivities;
 }
 
 /**
  * Delete a video download by ID (only if it belongs to the user)
+ * Handles both VideoDownload and SilenceRemoverTask
  */
 async function deleteUserVideo(userId, videoId) {
+  // Try to find in VideoDownload table first
   const video = await prisma.videoDownload.findFirst({
     where: { id: videoId, userId },
   });
 
-  if (!video) {
-    throw new Error('Video not found or access denied');
-  }
-
-  // Delete file from disk
-  try {
-    if (fs.existsSync(video.filePath)) {
-      fs.unlinkSync(video.filePath);
-      // Also try to remove the session directory if it's empty
-      const sessionDir = path.dirname(video.filePath);
-      try {
-        fs.rmdirSync(sessionDir);
-      } catch (err) {
-        // Ignore if directory not empty
+  if (video) {
+    // Delete file from disk
+    try {
+      if (fs.existsSync(video.filePath)) {
+        fs.unlinkSync(video.filePath);
+        // Also try to remove the session directory if it's empty
+        const sessionDir = path.dirname(video.filePath);
+        try {
+          fs.rmdirSync(sessionDir);
+        } catch (err) {
+          // Ignore if directory not empty
+        }
       }
+    } catch (err) {
+      logger.error('Failed to delete file from disk', err);
     }
-  } catch (err) {
-    logger.error('Failed to delete file from disk', err);
+
+    // Delete from database
+    await prisma.videoDownload.delete({
+      where: { id: videoId },
+    });
+
+    return { success: true };
   }
 
-  // Delete from database
-  await prisma.videoDownload.delete({
-    where: { id: videoId },
+  // Try silence remover task
+  const silenceTask = await prisma.silenceRemoverTask.findFirst({
+    where: { id: videoId, userId },
   });
 
-  return { success: true };
+  if (silenceTask) {
+    // Delete files from disk
+    try {
+      if (fs.existsSync(silenceTask.outputFilePath)) {
+        fs.unlinkSync(silenceTask.outputFilePath);
+      }
+      if (fs.existsSync(silenceTask.inputFilePath)) {
+        fs.unlinkSync(silenceTask.inputFilePath);
+      }
+    } catch (err) {
+      logger.error('Failed to delete silence task files', err);
+    }
+
+    // Delete from database
+    await prisma.silenceRemoverTask.delete({
+      where: { id: videoId },
+    });
+
+    return { success: true };
+  }
+
+  throw new Error('Item not found or access denied');
+}
+
+/**
+ * Delete all video downloads for a user (includes all services)
+ */
+async function deleteAllUserVideos(userId) {
+  // Get all video downloads
+  const videos = await prisma.videoDownload.findMany({
+    where: { userId },
+  });
+
+  // Get all silence remover tasks
+  const silenceTasks = await prisma.silenceRemoverTask.findMany({
+    where: { userId },
+  });
+
+  // Delete video download files from disk
+  for (const video of videos) {
+    try {
+      if (fs.existsSync(video.filePath)) {
+        fs.unlinkSync(video.filePath);
+        // Try to remove the session directory
+        const sessionDir = path.dirname(video.filePath);
+        try {
+          fs.rmdirSync(sessionDir);
+        } catch (err) {
+          // Ignore if directory not empty
+        }
+      }
+    } catch (err) {
+      logger.error('Failed to delete file from disk', err);
+    }
+  }
+
+  // Delete silence task files from disk
+  for (const task of silenceTasks) {
+    try {
+      if (fs.existsSync(task.outputFilePath)) {
+        fs.unlinkSync(task.outputFilePath);
+      }
+      if (fs.existsSync(task.inputFilePath)) {
+        fs.unlinkSync(task.inputFilePath);
+      }
+    } catch (err) {
+      logger.error('Failed to delete silence task files', err);
+    }
+  }
+
+  // Delete all from databases
+  const videoResult = await prisma.videoDownload.deleteMany({
+    where: { userId },
+  });
+
+  const silenceResult = await prisma.silenceRemoverTask.deleteMany({
+    where: { userId },
+  });
+
+  return videoResult.count + silenceResult.count;
 }
 
 module.exports = {
@@ -281,4 +398,5 @@ module.exports = {
   downloadVideo,
   getUserVideos,
   deleteUserVideo,
+  deleteAllUserVideos,
 };

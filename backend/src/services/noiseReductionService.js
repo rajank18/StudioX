@@ -3,6 +3,7 @@ const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const ffprobePath = require('ffprobe-static').path;
+const prisma = require('../config/prisma');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
@@ -42,9 +43,11 @@ async function probeMetadata(filePath) {
  * @param {string} inputPath - Path to input video file
  * @param {number} noiseReduction - Noise reduction strength (0-100)
  * @param {number} voiceEnhancement - Voice enhancement level (0-100)
- * @returns {Promise<{publicUrl: string, filename: string}>}
+ * @param {string} userId - User ID for tracking
+ * @param {string} originalTitle - Original video title
+ * @returns {Promise<{publicUrl: string, filename: string, videoId: string}>}
  */
-async function applyNoiseReduction(inputPath, noiseReduction = 70, voiceEnhancement = 70) {
+async function applyNoiseReduction(inputPath, noiseReduction = 70, voiceEnhancement = 70, userId = null, originalTitle = 'Noise Reduced Video') {
   const id = Date.now();
   const audioTemp = path.join(uploadDir, `a${id}.aac`).replace(/\\/g, '/');
   const outputFile = `c${id}.mp4`;
@@ -113,7 +116,35 @@ async function applyNoiseReduction(inputPath, noiseReduction = 70, voiceEnhancem
         .run();
     });
 
-    return { publicUrl: `/uploads/${outputFile}`, filename: outputFile };
+    const fileSize = fs.statSync(outputPath).size;
+    const publicUrl = `/uploads/${outputFile}`;
+
+    // Save to database if userId provided
+    let videoRecord = null;
+    if (userId) {
+      try {
+        videoRecord = await prisma.videoDownload.create({
+          data: {
+            userId,
+            title: originalTitle,
+            originalUrl: '',
+            filename: outputFile,
+            filePath: outputPath,
+            publicUrl,
+            fileSize,
+            service: 'noise-reduction',
+          },
+        });
+      } catch (err) {
+        console.error('Failed to save noise reduction to database:', err);
+      }
+    }
+
+    return { 
+      publicUrl, 
+      filename: outputFile,
+      videoId: videoRecord?.id 
+    };
     
   } catch (err) {
     try { fs.unlinkSync(audioTemp.replace(/\//g, '\\')); } catch (e) {}
@@ -125,7 +156,7 @@ async function applyNoiseReduction(inputPath, noiseReduction = 70, voiceEnhancem
 /**
  * Apply preset-based noise reduction for common scenarios
  */
-async function applyPreset(inputPath, preset = 'balanced') {
+async function applyPreset(inputPath, preset = 'balanced', userId = null, originalTitle = 'Noise Reduced Video') {
   const presets = {
     light: { noiseReduction: 40, voiceEnhancement: 40 },
     balanced: { noiseReduction: 70, voiceEnhancement: 70 },
@@ -135,7 +166,7 @@ async function applyPreset(inputPath, preset = 'balanced') {
   };
 
   const settings = presets[preset] || presets.balanced;
-  return applyNoiseReduction(inputPath, settings.noiseReduction, settings.voiceEnhancement);
+  return applyNoiseReduction(inputPath, settings.noiseReduction, settings.voiceEnhancement, userId, originalTitle);
 }
 
 module.exports = { 

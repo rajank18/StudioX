@@ -12,6 +12,7 @@ router.post('/youtube/download', clerkAuth, ensureUserExists, youtubeController.
 
 // Protected routes for user video management  
 router.get('/user/videos', clerkAuth, youtubeController.getUserVideoList);
+router.delete('/user/videos/all', clerkAuth, youtubeController.deleteAllUserVideos);
 router.delete('/user/videos/:id', clerkAuth, youtubeController.deleteUserVideoById);
 
 module.exports = router;

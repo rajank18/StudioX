@@ -3,7 +3,8 @@ import { useUser, useAuth } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { 
   Download, Trash2, Play, Calendar, HardDrive, 
-  Video, FileText, AlertCircle, Loader 
+  Video, FileText, AlertCircle, Loader, Volume2, 
+  VolumeX, Image, Film, Trash
 } from 'lucide-react';
 
 const Projects = () => {
@@ -13,6 +14,7 @@ const Projects = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   useEffect(() => {
     fetchUserVideos();
@@ -21,6 +23,7 @@ const Projects = () => {
   const fetchUserVideos = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear any previous errors
       const token = await getToken();
       const response = await fetch('http://localhost:3000/api/video/user/videos', {
         headers: {
@@ -30,12 +33,13 @@ const Projects = () => {
         },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch videos');
-      }
+      // if (!response.ok) {
+      //   throw new Error('Failed to fetch videos');
+      // }
 
       const data = await response.json();
       setVideos(data.videos || []);
+      setError(''); // Clear error on success
     } catch (err) {
       setError(err.message);
     } finally {
@@ -65,10 +69,11 @@ const Projects = () => {
   };
 
   const handleDelete = async (videoId) => {
-    if (!window.confirm('Are you sure you want to delete this video?')) return;
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
 
     try {
       setDeletingId(videoId);
+      setError(''); // Clear any previous errors
       const token = await getToken();
       const response = await fetch(`http://localhost:3000/api/video/user/videos/${videoId}`, {
         method: 'DELETE',
@@ -80,14 +85,44 @@ const Projects = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete video');
+        throw new Error('Failed to delete item');
       }
 
       setVideos(videos.filter(v => v.id !== videoId));
+      setError(''); // Clear error on success
     } catch (err) {
       setError(err.message);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm(`Are you sure you want to delete all ${videos.length} items? This action cannot be undone.`)) return;
+
+    try {
+      setDeletingAll(true);
+      setError(''); // Clear any previous errors
+      const token = await getToken();
+      const response = await fetch('http://localhost:3000/api/video/user/videos/all', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-User-Id': user?.id || '',
+          'X-User-Email': user?.emailAddresses?.[0]?.emailAddress || '',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete all items');
+      }
+
+      setVideos([]);
+      setError(''); // Clear error on success
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingAll(false);
     }
   };
 
@@ -109,12 +144,87 @@ const Projects = () => {
     });
   };
 
+  const getServiceIcon = (service) => {
+    switch (service) {
+      case 'youtube':
+        return <Download className="w-4 h-4" />;
+      case 'noise-reduction':
+        return <Volume2 className="w-4 h-4" />;
+      case 'silence-remover':
+        return <VolumeX className="w-4 h-4" />;
+      case 'video-to-gif':
+        return <Image className="w-4 h-4" />;
+      default:
+        return <Film className="w-4 h-4" />;
+    }
+  };
+
+  const getServiceLabel = (service) => {
+    switch (service) {
+      case 'youtube':
+        return 'YouTube Downloader';
+      case 'noise-reduction':
+        return 'Noise Reduction';
+      case 'silence-remover':
+        return 'Silence Remover';
+      case 'video-to-gif':
+        return 'Video to GIF';
+      default:
+        return 'Video Processing';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading your projects...</p>
+      <div className="min-h-screen bg-white">
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          {/* Header Skeleton */}
+          <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Projects</h1>
+            <p className="text-gray-600">Manage all your videos and processing activities</p>
+          </div> </div>
+
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                  <div className="flex-1">
+                    <div className="h-3 w-16 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Video Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {/* Thumbnail skeleton with shimmer */}
+                <div className="aspect-video bg-gray-200 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                </div>
+                {/* Content skeleton */}
+                <div className="p-6">
+                  <div className="h-5 bg-gray-200 rounded animate-pulse mb-2"></div>
+                  <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse mb-4"></div>
+                  <div className="space-y-2 mb-4">
+                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <div className="flex-1 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                    <div className="w-12 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -124,9 +234,25 @@ const Projects = () => {
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Projects</h1>
-          <p className="text-gray-600">Manage all your downloaded videos and projects</p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Projects</h1>
+            <p className="text-gray-600">Manage all your videos and processing activities</p>
+          </div>
+          {videos.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              disabled={deletingAll}
+              className="btn-danger flex items-center space-x-2"
+            >
+              {deletingAll ? (
+                <Loader className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash className="w-4 h-4" />
+              )}
+              <span>Delete All</span>
+            </button>
+          )}
         </div>
 
         {/* Error Message */}
@@ -188,9 +314,9 @@ const Projects = () => {
                 <Download className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">From YouTube</p>
+                <p className="text-sm text-gray-600">Processed</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {videos.filter(v => v.service === 'youtube').length}
+                  {videos.filter(v => v.service !== 'youtube').length}
                 </p>
               </div>
             </div>
@@ -221,13 +347,21 @@ const Projects = () => {
           <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
             <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No projects yet</h3>
-            <p className="text-gray-600 mb-6">Download your first video to see it here</p>
-            <button 
-              onClick={() => window.location.href = '/yt-downloader'}
-              className="btn-primary"
-            >
-              Download Video
-            </button>
+            <p className="text-gray-600 mb-6">Start using our tools to see your activity here</p>
+            <div className="flex justify-center space-x-3">
+              <button 
+                onClick={() => window.location.href = '/yt-downloader'}
+                className="btn-primary"
+              >
+                Download Video
+              </button>
+              <button 
+                onClick={() => window.location.href = '/noise-reduction'}
+                className="btn-secondary"
+              >
+                Process Audio
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -281,8 +415,8 @@ const Projects = () => {
                       <span>{formatFileSize(video.fileSize)}</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <FileText className="w-4 h-4" />
-                      <span>YouTube Downloader</span>
+                      {getServiceIcon(video.service)}
+                      <span>{getServiceLabel(video.service)}</span>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Calendar className="w-4 h-4" />
@@ -294,15 +428,15 @@ const Projects = () => {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleDownload(video)}
-                      className="flex-1 btn-primary text-sm py-2"
+                      className="flex-1 btn-primary text-sm py-2 flex items-center justify-center"
                     >
-                      <Download className="w-4 h-4 mr-1" />
+                      <Download className="w-4 h-4 mr-2" />
                       Download
                     </button>
                     <button
                       onClick={() => handleDelete(video.id)}
                       disabled={deletingId === video.id}
-                      className="px-3 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                      className="px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center justify-center"
                     >
                       {deletingId === video.id ? (
                         <Loader className="w-4 h-4 animate-spin" />

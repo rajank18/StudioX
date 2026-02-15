@@ -22,9 +22,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   ];
 
   const basicTools = [
+    { name: 'YouTube Downloader', path: '/yt-downloader' },
     { name: 'Video to GIF', path: '/video-to-gif' },
     { name: 'Noise Reduction', path: '/noise-reduction' },
-    { name: 'Video Crop', path: '/tools/crop' },
+    { name: 'Remove Silence', path: '/remove-silence' },
+    { name: 'Thumbnail Generator', path: '/thumbnail-generator' },
   ];
 
   return (
@@ -110,13 +112,16 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
         {/* AI Tools Collapsed */}
         {!isOpen && (
-          <Link
-            to="/tools/ai-enhance"
-            className="flex items-center justify-center px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          <button
+            onClick={() => {
+              setIsOpen(true);
+              setIsAiToolsOpen(true);
+            }}
+            className="flex items-center justify-center px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors w-full"
             title="AI Tools"
           >
             <Sparkles className="w-5 h-5 flex-shrink-0" />
-          </Link>
+          </button>
         )}
 
         {/* Basic Tools Section */}
@@ -154,13 +159,16 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
         {/* Basic Tools Collapsed */}
         {!isOpen && (
-          <Link
-            to="/tools/video-to-gif"
-            className="flex items-center justify-center px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          <button
+            onClick={() => {
+              setIsOpen(true);
+              setIsBasicToolsOpen(true);
+            }}
+            className="flex items-center justify-center px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors w-full"
             title="Basic Tools"
           >
             <Wrench className="w-5 h-5 flex-shrink-0" />
-          </Link>
+          </button>
         )}
       </nav>
 

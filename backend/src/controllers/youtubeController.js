@@ -1,4 +1,4 @@
-const { downloadVideo, getUserVideos, deleteUserVideo, getVideoInfo } = require('../services/youtubeService');
+const { downloadVideo, getUserVideos, deleteUserVideo, deleteAllUserVideos, getVideoInfo } = require('../services/youtubeService');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 // POST /api/video/youtube/download
@@ -88,9 +88,25 @@ const getYoutubeVideoInfo = asyncHandler(async (req, res) => {
   return res.status(200).json(videoInfo);
 });
 
+// DELETE /api/video/user/videos/all
+const deleteAllUserVideosHandler = asyncHandler(async (req, res) => {
+  const userId = req.auth?.userId || req.headers['x-user-id'];
+  
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const deletedCount = await deleteAllUserVideos(userId);
+  return res.status(200).json({ 
+    message: 'All items deleted successfully',
+    deletedCount 
+  });
+});
+
 module.exports = {
   downloadYoutubeVideo,
   getUserVideoList,
   deleteUserVideoById,
+  deleteAllUserVideos: deleteAllUserVideosHandler,
   getYoutubeVideoInfo,
 };

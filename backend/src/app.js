@@ -13,6 +13,7 @@ const videoRoutes = require('./routes/videoRoutes');
 const silenceRemoverRoutes = require('./routes/silenceRemoverRoutes');
 const videoToGifRoutes = require('./routes/videoToGifRoutes');
 const noiseReductionRoutes = require('./routes/noiseReductionRoutes');
+const thumbnailRoutes = require('./routes/thumbnailRoutes');
 
 const app = express();
 
@@ -56,6 +57,16 @@ app.use('/uploads', express.static(path.join(__dirname, 'temp', 'outputs'), {
   }
 }));
 
+// Serve thumbnail frames
+app.use('/thumbnails', express.static(path.join(__dirname, 'temp', 'thumbnails'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg') || filePath.endsWith('.png')) {
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Content-Disposition', 'inline');
+    }
+  }
+}));
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -89,6 +100,8 @@ app.use('/api/video/to-gif', videoToGifRoutes);
 // Noise reduction feature routes
 app.use('/api/noise-reduction', noiseReductionRoutes);
 app.use('/api', silenceRemoverRoutes);
+// Thumbnail generator routes
+app.use('/api/thumbnail', thumbnailRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

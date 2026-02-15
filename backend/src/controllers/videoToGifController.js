@@ -7,6 +7,9 @@ const convert = asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Video file is required (field name: video)' });
 
   const inputPath = req.file.path;
+  const userId = req.auth?.userId || req.headers['x-user-id'];
+  const originalFilename = req.file.originalname;
+  
   let startTime = 0;
   try {
     startTime = parseFloat(req.body.startTime || '0');
@@ -31,12 +34,13 @@ const convert = asyncHandler(async (req, res) => {
 
   // Convert
   try {
-    const { publicUrl, filename } = await convertToGif(inputPath, startTime, duration);
+    const title = `GIF - ${originalFilename}`;
+    const { publicUrl, filename, videoId } = await convertToGif(inputPath, startTime, duration, userId, title);
 
     // remove input video after successful conversion
     try { fs.unlinkSync(inputPath); } catch (e) {}
 
-    return res.status(200).json({ url: publicUrl, filename });
+    return res.status(200).json({ url: publicUrl, filename, videoId });
   } catch (err) {
     // cleanup input
     try { fs.unlinkSync(inputPath); } catch (e) {}
