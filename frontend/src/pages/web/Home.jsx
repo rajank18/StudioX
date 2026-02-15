@@ -95,6 +95,10 @@ const Home = () => {
                       navigate('/yt-downloader');
                     } else if (tool.title === "Silence Remover") {
                       navigate('/remove-silence');
+                    } else if (tool.title === "Crop & Resize") {
+                      navigate('/crop-resize');
+                    } else if (tool.title === "Noise Reduction") {
+                      navigate('/noise-reduction');
                     }
                   }}
                   className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-primary hover:shadow-lg transition-all text-left group"

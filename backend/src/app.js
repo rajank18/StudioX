@@ -13,6 +13,7 @@ const videoRoutes = require('./routes/videoRoutes');
 const silenceRemoverRoutes = require('./routes/silenceRemoverRoutes');
 const videoToGifRoutes = require('./routes/videoToGifRoutes');
 const noiseReductionRoutes = require('./routes/noiseReductionRoutes');
+const cropResizeRoutes = require('./routes/cropResizeRoutes');
 
 const app = express();
 
@@ -88,6 +89,8 @@ app.use('/api/video', videoRoutes);
 app.use('/api/video/to-gif', videoToGifRoutes);
 // Noise reduction feature routes
 app.use('/api/noise-reduction', noiseReductionRoutes);
+// Crop & Resize feature routes
+app.use('/api/crop-resize', cropResizeRoutes);
 app.use('/api', silenceRemoverRoutes);
 
 app.use((req, res) => {

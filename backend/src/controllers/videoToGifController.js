@@ -13,6 +13,18 @@ const convert = asyncHandler(async (req, res) => {
     if (isNaN(startTime) || startTime < 0) startTime = 0;
   } catch (e) { startTime = 0; }
 
+  let gifWidth = 640;
+  try {
+    const w = parseInt(req.body.gifWidth || '640');
+    if (!isNaN(w) && w >= 100 && w <= 2000) gifWidth = w;
+  } catch (e) { gifWidth = 640; }
+
+  let duration = 1;
+  try {
+    const d = parseFloat(req.body.duration || '1');
+    if (!isNaN(d) && d > 0) duration = d;
+  } catch (e) { duration = 1; }
+
   // Probe duration to ensure we don't go past end
   const totalDur = await probeDuration(inputPath);
   if (totalDur <= 0) {
@@ -27,11 +39,12 @@ const convert = asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'startTime is beyond video duration' });
   }
 
-  const duration = Math.min(5, available);
+  // Clamp duration: minimum 0.1s, maximum 30s, and can't exceed available time
+  duration = Math.max(0.1, Math.min(duration, Math.min(30, available)));
 
   // Convert
   try {
-    const { publicUrl, filename } = await convertToGif(inputPath, startTime, duration);
+    const { publicUrl, filename } = await convertToGif(inputPath, startTime, duration, gifWidth);
 
     // remove input video after successful conversion
     try { fs.unlinkSync(inputPath); } catch (e) {}

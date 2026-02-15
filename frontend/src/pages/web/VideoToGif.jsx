@@ -15,6 +15,7 @@ const VideoToGif = () => {
   const [videoDuration, setVideoDuration] = useState(0);
   const [startTime, setStartTime] = useState(0);
   const [duration, setDuration] = useState(1); // Selection duration in seconds
+  const [gifWidth, setGifWidth] = useState(640); // GIF output width in pixels
   const [isLoading, setIsLoading] = useState(false);
   const [resultUrl, setResultUrl] = useState(null);
   const [error, setError] = useState('');
@@ -132,6 +133,9 @@ const VideoToGif = () => {
     const dur = videoRef.current?.duration || 0;
     setVideoDuration(dur);
     setStartTime(0);
+    // Default selection: 5 seconds (or full video if shorter) so user can resize/drag to any range
+    const defaultDuration = dur > 0 ? Math.min(5, Math.max(0.1, dur)) : 1;
+    setDuration(defaultDuration);
     // Ensure timeline width is measured once metadata loads (layout can shift)
     const el = timelineRef.current;
     if (el) setTimeout(() => setContainerWidth(Math.floor(el.clientWidth || 0)), 50);
@@ -165,6 +169,7 @@ const VideoToGif = () => {
       fd.append('video', uploadFile);
       fd.append('startTime', String(Math.max(0, parseFloat(startTime) || 0)));
       fd.append('duration', String(Math.max(0.1, parseFloat(duration) || 1)));
+      fd.append('gifWidth', String(Math.max(100, Math.min(2000, parseInt(gifWidth) || 640))));
 
       const headers = {
         'X-User-Id': user?.id || '',
@@ -412,45 +417,40 @@ const VideoToGif = () => {
     try { selectionRef.current?.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
 
     activePointerIdRef.current = e.pointerId;
-    dragRef.current = { active: true, startX: e.clientX, startLeft: startLeftPx, startDuration: duration };
+    dragRef.current = { active: true, startX: e.clientX, startLeft: startLeftPx, startDuration: duration, startTime };
     setIsDragging(true);
     document.body.style.cursor = resizeMode.current === 'move' ? 'grabbing' : 'ew-resize';
   };
 
   const onPointerMove = (e) => {
     if (!dragRef.current.active) return;
+    if (!containerWidth || !videoDuration) return;
     // If pointerId is set, ensure same pointer controls the drag
     if (activePointerIdRef.current && e.pointerId !== activePointerIdRef.current) return;
     e.preventDefault();
 
     const dx = e.clientX - dragRef.current.startX;
+    const dxTime = (dx / containerWidth) * videoDuration;
 
     if (resizeMode.current === 'left') {
       // Left edge resize: adjust startTime and duration
-      const dxTime = (dx / Math.max(1, containerWidth)) * videoDuration;
-      let newStart = Math.max(0, dragRef.current.startLeft / containerWidth * videoDuration + dxTime);
+      let newStart = Math.max(0, (dragRef.current.startTime ?? dragRef.current.startLeft / containerWidth * videoDuration) + dxTime);
       let newDuration = dragRef.current.startDuration - dxTime;
       
-      // Clamp duration to minimum 0.1s and ensure start + duration <= videoDuration
       newDuration = Math.max(0.1, newDuration);
       newStart = Math.max(0, Math.min(newStart, videoDuration - 0.1));
-      
-      // Ensure end time doesn't exceed video duration
       if (newStart + newDuration > videoDuration) {
         newStart = videoDuration - newDuration;
       }
+      newDuration = Math.max(0.1, Math.min(newDuration, videoDuration - newStart));
 
       pendingLeftRef.current = newStart;
       pendingDurationRef.current = newDuration;
     } else if (resizeMode.current === 'right') {
       // Right edge resize: adjust duration only
-      const dxTime = (dx / Math.max(1, containerWidth)) * videoDuration;
+      const currentStart = dragRef.current.startTime ?? (dragRef.current.startLeft / containerWidth * videoDuration);
       let newDuration = dragRef.current.startDuration + dxTime;
-      const currentStart = dragRef.current.startLeft / containerWidth * videoDuration;
-      
-      // Clamp duration to minimum 0.1s and ensure start + duration <= videoDuration
       newDuration = Math.max(0.1, Math.min(newDuration, videoDuration - currentStart));
-      
       pendingDurationRef.current = newDuration;
     } else {
       // Move mode: adjust position only
@@ -510,32 +510,33 @@ const VideoToGif = () => {
     }
     
     activePointerIdRef.current = 'touch';
-    dragRef.current = { active: true, startX: t.clientX, startLeft: startLeftPx, startDuration: duration };
+    dragRef.current = { active: true, startX: t.clientX, startLeft: startLeftPx, startDuration: duration, startTime };
     setIsDragging(true);
     document.body.style.cursor = resizeMode.current === 'move' ? 'grabbing' : 'ew-resize';
   };
 
   const onTouchMove = (e) => {
     if (!dragRef.current.active) return;
+    if (!containerWidth || !videoDuration) return;
     const t = e.touches[0];
     e.preventDefault();
     const dx = t.clientX - dragRef.current.startX;
+    const dxTime = (dx / containerWidth) * videoDuration;
 
     if (resizeMode.current === 'left') {
-      const dxTime = (dx / Math.max(1, containerWidth)) * videoDuration;
-      let newStart = Math.max(0, dragRef.current.startLeft / containerWidth * videoDuration + dxTime);
+      let newStart = Math.max(0, (dragRef.current.startTime ?? dragRef.current.startLeft / containerWidth * videoDuration) + dxTime);
       let newDuration = dragRef.current.startDuration - dxTime;
       newDuration = Math.max(0.1, newDuration);
       newStart = Math.max(0, Math.min(newStart, videoDuration - 0.1));
       if (newStart + newDuration > videoDuration) {
         newStart = videoDuration - newDuration;
       }
+      newDuration = Math.max(0.1, Math.min(newDuration, videoDuration - newStart));
       pendingLeftRef.current = newStart;
       pendingDurationRef.current = newDuration;
     } else if (resizeMode.current === 'right') {
-      const dxTime = (dx / Math.max(1, containerWidth)) * videoDuration;
+      const currentStart = dragRef.current.startTime ?? (dragRef.current.startLeft / containerWidth * videoDuration);
       let newDuration = dragRef.current.startDuration + dxTime;
-      const currentStart = dragRef.current.startLeft / containerWidth * videoDuration;
       newDuration = Math.max(0.1, Math.min(newDuration, videoDuration - currentStart));
       pendingDurationRef.current = newDuration;
     } else {
@@ -583,7 +584,7 @@ const VideoToGif = () => {
     // center selection on clicked x
     const desiredLeft = Math.max(0, Math.min(x - selectionWidthPx / 2, maxLeftPx));
     const newStart = (desiredLeft / Math.max(1, containerWidth)) * videoDuration;
-    setStartTime(Math.max(0, Math.min(newStart, Math.max(0, videoDuration - 5))));
+    setStartTime(Math.max(0, Math.min(newStart, Math.max(0, videoDuration - duration))));
   };
 
   // Revoke object URL when the selected file is cleared to free memory
@@ -780,7 +781,7 @@ const VideoToGif = () => {
             </div>
           )}
 
-          {/* Video preview & timeline-based 5s selection (responsive) */}
+          {/* Video preview & timeline: resizable + draggable segment selection */}
           {videoUrl && (
             <div>
               <video
@@ -794,8 +795,8 @@ const VideoToGif = () => {
               {/* Timeline container */}
               <div className="mt-4">
                 <div className="text-sm text-gray-700 mb-2 flex items-center justify-between">
-                  <div className="font-medium">Selection: <span className="text-gray-600">{formatTime(startTime)} → {formatTime(Math.min(startTime + duration, videoDuration))}</span></div>
-                  <div className="text-xs text-gray-500">Drag edges to resize, center to move</div>
+                  <div className="font-medium">GIF segment: <span className="text-gray-600">{formatTime(startTime)} → {formatTime(Math.min(startTime + duration, videoDuration))}</span> <span className="text-gray-500">({duration.toFixed(1)}s)</span></div>
+                  <div className="text-xs text-gray-500">Drag edges to change length · Drag center to move along video</div>
                 </div>
 
                 <div
@@ -832,7 +833,7 @@ const VideoToGif = () => {
                     <div className="right-overlay" style={{ position: 'absolute', left: `${startLeftPx + selectionWidthPx}px`, top: 0, bottom: 0, right: 0, background: 'rgba(0,0,0,0.45)' }} />
                   </div>
 
-                  {/* Fixed 5s draggable window with arrow controls */}
+                  {/* Draggable & resizable selection: user picks any segment (length + position) */}
                   <div
                     ref={selectionRef}
                     onPointerDown={onPointerDown}
@@ -868,8 +869,9 @@ const VideoToGif = () => {
                       }
                     }}
                     onPointerDownCapture={(ev) => {
-                      // stop propagation in capture phase to ensure timeline doesn't react
-                      ev.stopPropagation();
+                      // Only stop propagation when clicking the selection center, so resize handles receive the event
+                      const onHandle = leftHandleRef.current?.contains(ev.target) || rightHandleRef.current?.contains(ev.target);
+                      if (!onHandle) ev.stopPropagation();
                     }}
                   >
                     {/* Left resize handle */}
@@ -885,11 +887,11 @@ const VideoToGif = () => {
                         resizeMode.current = 'left';
                         onTouchStart(e);
                       }}
-                      className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize bg-primary/70 hover:bg-primary/90 transition-colors z-30 flex items-center justify-center"
+                      className="absolute left-0 top-0 bottom-0 w-4 cursor-ew-resize bg-primary/80 hover:bg-primary transition-colors z-30 flex items-center justify-center rounded-l-md"
                       style={{ pointerEvents: 'auto' }}
-                      title="Drag to resize from left"
+                      title="Drag to resize start time (change length)"
                     >
-                      <div className="w-0.5 h-8 bg-white/80 rounded"></div>
+                      <div className="flex gap-0.5"><div className="w-0.5 h-6 bg-white/90 rounded" /><div className="w-0.5 h-6 bg-white/90 rounded" /></div>
                     </div>
 
                     {/* Center time display */}
@@ -910,11 +912,11 @@ const VideoToGif = () => {
                         resizeMode.current = 'right';
                         onTouchStart(e);
                       }}
-                      className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize bg-primary/70 hover:bg-primary/90 transition-colors z-30 flex items-center justify-center"
+                      className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize bg-primary/80 hover:bg-primary transition-colors z-30 flex items-center justify-center rounded-r-md"
                       style={{ pointerEvents: 'auto' }}
-                      title="Drag to resize from right"
+                      title="Drag to resize end time (change length)"
                     >
-                      <div className="w-0.5 h-8 bg-white/80 rounded"></div>
+                      <div className="flex gap-0.5"><div className="w-0.5 h-6 bg-white/90 rounded" /><div className="w-0.5 h-6 bg-white/90 rounded" /></div>
                     </div>
 
                     {/* Tooltip while dragging */}
@@ -957,6 +959,29 @@ const VideoToGif = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* GIF Width Selector */}
+          {videoUrl && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <label htmlFor="gif-width" className="block text-sm font-medium text-gray-700 mb-2">GIF Width (pixels)</label>
+              <div className="flex gap-3 items-center">
+                <input
+                  id="gif-width"
+                  type="range"
+                  min="200"
+                  max="1600"
+                  step="100"
+                  value={gifWidth}
+                  onChange={(e) => setGifWidth(parseInt(e.target.value))}
+                  className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <div className="bg-white border border-gray-300 rounded-lg px-4 py-2 min-w-24 text-center font-medium text-gray-700">
+                  {gifWidth}px
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">Larger width = better quality but bigger file size (100-2000px, default 640px)</p>
             </div>
           )}
 
