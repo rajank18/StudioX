@@ -96,6 +96,8 @@ const Home = () => {
                       navigate('/yt-downloader');
                     } else if (tool.title === "Silence Remover") {
                       navigate('/remove-silence');
+                    } else if (tool.title === "Crop & Resize") {
+                      navigate('/crop-resize');
                     } else if (tool.title === "Noise Reduction") {
                       navigate('/noise-reduction');
                     }

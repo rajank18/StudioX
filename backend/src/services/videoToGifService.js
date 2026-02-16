@@ -21,7 +21,7 @@ async function probeDuration(filePath) {
   });
 }
 
-async function convertToGif(inputPath, startTime = 0, duration = 1, userId = null, originalTitle = 'Video to GIF') {
+async function convertToGif(inputPath, startTime = 0, duration = 1, gifWidth = 640) {
   const id = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   const palettePath = path.join(uploadDir, `${id}_palette.png`);
   const outputFile = `gif_${id}.gif`;
@@ -29,6 +29,9 @@ async function convertToGif(inputPath, startTime = 0, duration = 1, userId = nul
 
   // Ensure minimum duration of 0.1s, no maximum limit
   duration = Math.max(0.1, duration);
+  
+  // Clamp width to reasonable range (100-2000px)
+  gifWidth = Math.max(100, Math.min(2000, gifWidth || 640));
 
   // First pass: generate palette for better quality
   await new Promise((resolve, reject) => {
@@ -36,7 +39,7 @@ async function convertToGif(inputPath, startTime = 0, duration = 1, userId = nul
       .seekInput(startTime)
       .duration(duration)
       .outputOptions([
-        '-vf', `fps=10,scale=640:-1:flags=lanczos,palettegen`
+        '-vf', `fps=10,scale=${gifWidth}:-1:flags=lanczos,palettegen`
       ])
       .output(palettePath)
       .on('end', resolve)
@@ -51,7 +54,7 @@ async function convertToGif(inputPath, startTime = 0, duration = 1, userId = nul
       .duration(duration)
       .input(palettePath)
       .outputOptions([
-        '-lavfi', `fps=10,scale=640:-1:flags=lanczos[x];[x][1:v]paletteuse`
+        '-lavfi', `fps=10,scale=${gifWidth}:-1:flags=lanczos[x];[x][1:v]paletteuse`
       ])
       .output(outputPath)
       .on('end', resolve)
