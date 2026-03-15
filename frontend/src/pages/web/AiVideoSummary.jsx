@@ -136,6 +136,7 @@ const AiVideoSummary = () => {
     return summaryData.summary
       .replace(/\*\*/g, '')
       .replace(/^#{1,6}\s*/gm, '')
+      .replace(/^\s*TL\s*;?\s*DR\s*:?\s*$/gim, 'One-line Summary')
       .replace(/^[-]{3,}\s*$/gm, '')
       .replace(/^\s*[-*]\s+/gm, '• ')
       .replace(/\n{3,}/g, '\n\n')
@@ -180,7 +181,7 @@ const AiVideoSummary = () => {
     URL.revokeObjectURL(url);
   };
 
-  const isHeading = (line) => /^(summary|tldr|tl;dr|key points|actionable takeaways)\s*:?$/i.test(line);
+  const isHeading = (line) => /^(summary|one-line summary|tldr|tl;dr|key points|actionable takeaways)\s*:?$/i.test(line);
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">

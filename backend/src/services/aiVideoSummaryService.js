@@ -244,7 +244,7 @@ async function summarizeTranscriptWithOpenRouter(transcript, videoTitle) {
     '',
     'Write a concise and useful summary using exactly these plain-text sections:',
     'Summary',
-    'TLDR',
+    'One-line Summary',
     'Key Points',
     'Actionable Takeaways',
     '',
