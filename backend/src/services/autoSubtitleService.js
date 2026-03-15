@@ -292,6 +292,29 @@ async function generateAutoSubtitledVideo(url, userId) {
   }
 }
 
+async function getYoutubeMetadata(url) {
+  const videoInfo = await ytDlp(
+    url,
+    {
+      dumpJson: true,
+      skipDownload: true,
+      quiet: true,
+      noWarnings: true,
+      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+      extractorRetries: 3,
+    },
+    { ytDlpPath: YT_DLP_PATH }
+  );
+
+  return {
+    title: videoInfo.title || 'Untitled video',
+    duration: videoInfo.duration_string || null,
+    channel: videoInfo.uploader || null,
+    thumbnail: videoInfo.thumbnail || null,
+  };
+}
+
 module.exports = {
   generateAutoSubtitledVideo,
+  getYoutubeMetadata,
 };
