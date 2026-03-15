@@ -13,6 +13,7 @@ import NoiseReduction from '../pages/web/NoiseReduction';
 import ThumbnailGenerator from '../pages/web/ThumbnailGenerator';
 import CropResize from '../pages/web/CropResize';
 import AiVideoSummary from '../pages/web/AiVideoSummary';
+import AutoSubtitles from '../pages/web/AutoSubtitles';
 
 const WebRoutes = () => {
   return (
@@ -120,6 +121,16 @@ const WebRoutes = () => {
           <>
             <SignedIn>
               <AiVideoSummary />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/auto-subtitles" element={
+          <>
+            <SignedIn>
+              <AutoSubtitles />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />

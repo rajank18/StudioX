@@ -102,6 +102,8 @@ const Home = () => {
                       navigate('/ai-video-summary');
                     } else if (tool.title === "Noise Reduction") {
                       navigate('/noise-reduction');
+                    } else if (tool.title === "Auto Subtitles") {
+                      navigate('/auto-subtitles');
                     }
                   }}
                   className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-primary hover:shadow-lg transition-all text-left group"
