@@ -12,25 +12,26 @@ import VideoToGif from '../pages/web/VideoToGif';
 import NoiseReduction from '../pages/web/NoiseReduction';
 import ThumbnailGenerator from '../pages/web/ThumbnailGenerator';
 import CropResize from '../pages/web/CropResize';
+import AiVideoSummary from '../pages/web/AiVideoSummary';
 
 const WebRoutes = () => {
   return (
     <Routes>
       {/* Public landing page (no sidebar/layout) */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/onboarding" element={ <OnBoarding/>}/>
-      
-      {/* Protected onboarding - no navbar
-      <Route path="/onboarding" element={ <OnBoarding/>
-        // <>
-        //   <SignedIn>
-        //     <OnBoarding />
-        //   </SignedIn>
-        //   <SignedOut>
-        //     <Navigate to="/sign-in" replace />
-        //   </SignedOut>
-        // </>
-      } /> */}
+      <Route
+        path="/onboarding"
+        element={
+          <>
+            <SignedIn>
+              <Navigate to="/home" replace />
+            </SignedIn>
+            <SignedOut>
+              <OnBoarding />
+            </SignedOut>
+          </>
+        }
+      />
       
       {/* Protected app routes wrapped in WebLayout (with sidebar) */}
       <Route element={<WebLayout />}>
@@ -109,6 +110,16 @@ const WebRoutes = () => {
           <>
             <SignedIn>
               <CropResize />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/ai-video-summary" element={
+          <>
+            <SignedIn>
+              <AiVideoSummary />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />

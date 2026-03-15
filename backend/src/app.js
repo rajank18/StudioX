@@ -15,6 +15,7 @@ const videoToGifRoutes = require('./routes/videoToGifRoutes');
 const noiseReductionRoutes = require('./routes/noiseReductionRoutes');
 const thumbnailRoutes = require('./routes/thumbnailRoutes');
 const cropResizeRoutes = require('./routes/cropResizeRoutes');
+const aiVideoSummaryRoutes = require('./routes/aiVideoSummaryRoutes');
 
 const app = express();
 
@@ -105,6 +106,8 @@ app.use('/api/crop-resize', cropResizeRoutes);
 app.use('/api', silenceRemoverRoutes);
 // Thumbnail generator routes
 app.use('/api/thumbnail', thumbnailRoutes);
+// AI Video Summary routes
+app.use('/api/ai-video-summary', aiVideoSummaryRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

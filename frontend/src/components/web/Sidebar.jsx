@@ -17,6 +17,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   ];
 
   const aiTools = [
+    { name: 'AI Video Summary', path: '/ai-video-summary' },
     { name: 'AI Enhancement', path: '/tools/ai-enhance' },
     { name: 'AI Upscale', path: '/tools/ai-upscale' },
   ];

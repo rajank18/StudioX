@@ -98,6 +98,8 @@ const Home = () => {
                       navigate('/remove-silence');
                     } else if (tool.title === "Crop & Resize") {
                       navigate('/crop-resize');
+                    } else if (tool.title === "AI Video Summary") {
+                      navigate('/ai-video-summary');
                     } else if (tool.title === "Noise Reduction") {
                       navigate('/noise-reduction');
                     }

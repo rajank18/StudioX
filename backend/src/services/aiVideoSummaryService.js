@@ -1,0 +1,365 @@
+const fs = require('fs');
+const path = require('path');
+const ytDlp = require('yt-dlp-exec');
+const OpenAI = require('openai');
+const { AssemblyAI } = require('assemblyai');
+const logger = require('../utils/logger');
+
+const TEMP_DIR = path.join(__dirname, '..', 'temp', 'ai-summary');
+const YT_DLP_PATH = 'yt-dlp';
+const OPENROUTER_MODEL = 'openrouter/hunter-alpha';
+
+function ensureTempDir() {
+  if (!fs.existsSync(TEMP_DIR)) {
+    fs.mkdirSync(TEMP_DIR, { recursive: true });
+  }
+}
+
+function getOpenAiClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is required for Whisper transcription');
+  }
+
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
+
+function getOpenRouterClient() {
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY is required for summary generation');
+  }
+
+  return new OpenAI({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    baseURL: 'https://openrouter.ai/api/v1',
+    defaultHeaders: {
+      'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5173',
+      'X-Title': 'StudioX',
+    },
+  });
+}
+
+function getAssemblyAiClient() {
+  if (!process.env.ASSEMBLYAI_API_KEY) {
+    throw new Error('ASSEMBLYAI_API_KEY is required for AssemblyAI transcription');
+  }
+
+  return new AssemblyAI({
+    apiKey: process.env.ASSEMBLYAI_API_KEY,
+  });
+}
+
+function cleanupDirSafe(dirPath) {
+  try {
+    if (dirPath && fs.existsSync(dirPath)) {
+      fs.rmSync(dirPath, { recursive: true, force: true });
+    }
+  } catch (error) {
+    logger.warn('Failed to cleanup AI summary temp directory', { dirPath, error: error.message });
+  }
+}
+
+function normalizeTranscriptText(rawText) {
+  if (!rawText) return '';
+
+  return rawText
+    .replace(/\r/g, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\{[^}]+\}/g, ' ')
+    .replace(/\[\s*Music\s*\]/gi, ' ')
+    .replace(/\[\s*Applause\s*\]/gi, ' ')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return false;
+      if (/^\d+$/.test(line)) return false;
+      if (/^\d{2}:\d{2}:\d{2}[\.,]\d{3}\s+-->\s+\d{2}:\d{2}:\d{2}[\.,]\d{3}$/.test(line)) return false;
+      if (/^\d{2}:\d{2}[\.:]\d{2}[\.,]\d{3}\s+-->\s+\d{2}:\d{2}[\.:]\d{2}[\.,]\d{3}/.test(line)) return false;
+      if (/^\d{2}:\d{2}:\d{2}\.\d{3}\s+-->\s+\d{2}:\d{2}:\d{2}\.\d{3}/.test(line)) return false;
+      if (/^WEBVTT$/i.test(line)) return false;
+      if (/^(NOTE|STYLE|REGION)/i.test(line)) return false;
+      return true;
+    })
+    .join(' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+async function downloadYoutubeTranscript(url, sessionDir) {
+  const outputTemplate = path.join(sessionDir, 'captions.%(ext)s');
+
+  await ytDlp(
+    url,
+    {
+      skipDownload: true,
+      writeAutoSubs: true,
+      writeSubs: true,
+      subLangs: 'en.*,en',
+      subFormat: 'vtt/srt/best',
+      noPlaylist: true,
+      noWarnings: true,
+      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+      extractorRetries: 3,
+      output: outputTemplate,
+      quiet: true,
+    },
+    { ytDlpPath: YT_DLP_PATH }
+  );
+
+  const subtitleFiles = fs
+    .readdirSync(sessionDir)
+    .filter((name) => /\.(vtt|srt|srv3|ttml)$/i.test(name))
+    .map((name) => path.join(sessionDir, name));
+
+  if (!subtitleFiles.length) {
+    throw new Error('No subtitles/captions were found for this video');
+  }
+
+  let bestTranscript = '';
+  for (const subtitlePath of subtitleFiles) {
+    try {
+      const raw = fs.readFileSync(subtitlePath, 'utf8');
+      const parsed = normalizeTranscriptText(raw);
+      if (parsed.length > bestTranscript.length) {
+        bestTranscript = parsed;
+      }
+    } catch (error) {
+      logger.warn('Failed reading subtitle file', { subtitlePath, error: error.message });
+    }
+  }
+
+  if (!bestTranscript) {
+    throw new Error('Captions were downloaded but transcript text is empty');
+  }
+
+  return bestTranscript;
+}
+
+async function getYoutubeMetadata(url) {
+  const videoInfo = await ytDlp(
+    url,
+    {
+      dumpJson: true,
+      skipDownload: true,
+      quiet: true,
+      noWarnings: true,
+      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+      extractorRetries: 3,
+    },
+    { ytDlpPath: YT_DLP_PATH }
+  );
+
+  return {
+    title: videoInfo.title || 'Untitled video',
+    duration: videoInfo.duration_string || null,
+    channel: videoInfo.uploader || null,
+    thumbnail: videoInfo.thumbnail || null,
+  };
+}
+
+async function downloadYoutubeAudio(url, sessionDir) {
+  const ffmpegPath = require('ffmpeg-static');
+  const outputTemplate = path.join(sessionDir, 'audio.%(ext)s');
+
+  await ytDlp(
+    url,
+    {
+      extractAudio: true,
+      audioFormat: 'mp3',
+      audioQuality: 0,
+      noPlaylist: true,
+      noPart: true,
+      noWarnings: true,
+      preferFreeFormats: true,
+      ffmpegLocation: path.dirname(ffmpegPath),
+      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+      extractorRetries: 3,
+      output: outputTemplate,
+      quiet: true,
+    },
+    { ytDlpPath: YT_DLP_PATH }
+  );
+
+  const files = fs
+    .readdirSync(sessionDir)
+    .filter((name) => /\.(mp3|m4a|wav|ogg)$/i.test(name))
+    .map((name) => ({
+      name,
+      fullPath: path.join(sessionDir, name),
+      size: fs.statSync(path.join(sessionDir, name)).size,
+    }))
+    .sort((a, b) => b.size - a.size);
+
+  if (!files.length) {
+    throw new Error('Audio extraction failed: no audio file generated');
+  }
+
+  return files[0].fullPath;
+}
+
+async function transcribeAudioWithWhisper(audioPath) {
+  const client = getOpenAiClient();
+
+  const transcriptionResult = await client.audio.transcriptions.create({
+    file: fs.createReadStream(audioPath),
+    model: process.env.WHISPER_MODEL || 'whisper-1',
+    response_format: 'text',
+  });
+
+  if (!transcriptionResult || (typeof transcriptionResult === 'string' && !transcriptionResult.trim())) {
+    throw new Error('Whisper transcription returned empty text');
+  }
+
+  const transcript = typeof transcriptionResult === 'string'
+    ? transcriptionResult
+    : transcriptionResult.text;
+
+  if (!transcript || !transcript.trim()) {
+    throw new Error('Whisper transcription returned empty text');
+  }
+
+  return transcript.trim();
+}
+
+async function transcribeAudioWithAssemblyAi(audioPath) {
+  const client = getAssemblyAiClient();
+
+  const transcript = await client.transcripts.transcribe({
+    audio: audioPath,
+    language_detection: true,
+    speech_models: ['universal-3-pro', 'universal-2'],
+  });
+
+  if (!transcript || !transcript.text || !transcript.text.trim()) {
+    throw new Error('AssemblyAI transcription returned empty text');
+  }
+
+  return transcript.text.trim();
+}
+
+async function summarizeTranscriptWithOpenRouter(transcript, videoTitle) {
+  const client = getOpenRouterClient();
+
+  const prompt = [
+    `Video title: ${videoTitle || 'N/A'}`,
+    '',
+    'Write a concise and useful summary using exactly these plain-text sections:',
+    'Summary',
+    'TLDR',
+    'Key Points',
+    'Actionable Takeaways',
+    '',
+    'Formatting rules:',
+    '- Return plain text only (no markdown, no #, no **, no ---)',
+    '- Use short lines and clean punctuation',
+    '- Use bullet lines starting with "• " under list sections',
+    '',
+    'Transcript:',
+    transcript,
+  ].join('\n');
+
+  const completion = await client.chat.completions.create({
+    model: OPENROUTER_MODEL,
+    temperature: 0.3,
+    messages: [
+      {
+        role: 'system',
+        content: 'You summarize video transcripts clearly and accurately. Do not hallucinate details not present in transcript.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+  });
+
+  const summary = completion?.choices?.[0]?.message?.content?.trim();
+
+  if (!summary) {
+    throw new Error('OpenRouter returned an empty summary');
+  }
+
+  return summary
+    .replace(/\*\*/g, '')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/^[-]{3,}\s*$/gm, '')
+    .replace(/^\s*[-*]\s+/gm, '• ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+async function generateAiVideoSummary(url, userId) {
+  ensureTempDir();
+
+  const sessionId = `summary_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const sessionDir = path.join(TEMP_DIR, sessionId);
+  fs.mkdirSync(sessionDir, { recursive: true });
+
+  try {
+    logger.info('AI summary started', { userId, sessionId });
+
+    const metadata = await getYoutubeMetadata(url);
+    let transcript = '';
+    let transcriptSource = 'youtube-captions';
+
+    try {
+      transcript = await downloadYoutubeTranscript(url, sessionDir);
+    } catch (captionError) {
+      logger.warn('Caption transcript unavailable, checking audio transcription fallback', {
+        sessionId,
+        error: captionError.message,
+      });
+
+      const audioPath = await downloadYoutubeAudio(url, sessionDir);
+
+      if (process.env.ASSEMBLYAI_API_KEY) {
+        try {
+          transcript = await transcribeAudioWithAssemblyAi(audioPath);
+          transcriptSource = 'assemblyai';
+        } catch (assemblyError) {
+          logger.warn('AssemblyAI transcription failed, checking Whisper fallback', {
+            sessionId,
+            error: assemblyError.message,
+          });
+
+          if (process.env.OPENAI_API_KEY) {
+            transcript = await transcribeAudioWithWhisper(audioPath);
+            transcriptSource = 'whisper';
+          } else {
+            throw new Error(`AssemblyAI transcription failed: ${assemblyError.message}`);
+          }
+        }
+      } else if (process.env.OPENAI_API_KEY) {
+        transcript = await transcribeAudioWithWhisper(audioPath);
+        transcriptSource = 'whisper';
+      } else {
+        throw new Error('No captions available and no transcription provider key found. Set ASSEMBLYAI_API_KEY (recommended) or OPENAI_API_KEY.');
+      }
+    }
+
+    const summary = await summarizeTranscriptWithOpenRouter(transcript, metadata.title);
+
+    logger.info('AI summary completed', {
+      userId,
+      sessionId,
+      transcriptLength: transcript.length,
+      summaryLength: summary.length,
+      transcriptSource,
+    });
+
+    return {
+      sessionId,
+      model: OPENROUTER_MODEL,
+      transcriptSource,
+      video: metadata,
+      transcript,
+      summary,
+    };
+  } finally {
+    cleanupDirSafe(sessionDir);
+  }
+}
+
+module.exports = {
+  generateAiVideoSummary,
+  getYoutubeMetadata,
+};
