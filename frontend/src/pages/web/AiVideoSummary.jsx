@@ -297,18 +297,18 @@ const AiVideoSummary = () => {
             <div className="flex gap-2">
               <button
                 onClick={handleCopy}
-                className="btn-outline-primary flex items-center gap-2"
+                className="btn-outline-primary flex items-center gap-2 cursor-pointer"
                 type="button"
               >
-                {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? <CheckCircle className="w-4 h-3" /> : <Copy className="w-4 h-4" />}
                 <span>{copied ? 'Copied' : 'Copy'}</span>
               </button>
               <button
                 onClick={handleDownloadTxt}
-                className="btn-primary flex items-center gap-2"
+                className="btn-primary flex items-center gap-2 cursor-pointer"
                 type="button"
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-4 h-3" />
                 <span>Download .txt</span>
               </button>
             </div>
