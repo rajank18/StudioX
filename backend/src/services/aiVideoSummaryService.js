@@ -7,8 +7,10 @@ const ffprobePath = require('ffprobe-static').path;
 const OpenAI = require('openai');
 const { AssemblyAI } = require('assemblyai');
 const logger = require('../utils/logger');
+const prisma = require('../config/prisma');
 
 const TEMP_DIR = path.join(__dirname, '..', 'temp', 'ai-summary');
+const OUTPUT_DIR = path.join(__dirname, '..', 'temp', 'outputs');
 const YT_DLP_PATH = 'yt-dlp';
 const OPENROUTER_MODEL = 'openrouter/hunter-alpha';
 
@@ -18,6 +20,9 @@ ffmpeg.setFfprobePath(ffprobePath);
 function ensureTempDir() {
   if (!fs.existsSync(TEMP_DIR)) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 }
 
@@ -349,6 +354,55 @@ async function summarizeTranscriptWithOpenRouter(transcript, videoTitle) {
     .trim();
 }
 
+async function saveSummaryArtifact({
+  userId,
+  title,
+  originalUrl = '',
+  summary,
+  metadata,
+  transcriptSource,
+}) {
+  const filename = `summary_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.txt`;
+  const filePath = path.join(OUTPUT_DIR, filename);
+
+  const content = [
+    'AI Video Summary',
+    '================',
+    `Title: ${title || 'N/A'}`,
+    `Duration: ${metadata?.duration || 'N/A'}`,
+    `Channel: ${metadata?.channel || 'N/A'}`,
+    `Transcript Source: ${transcriptSource || 'N/A'}`,
+    '',
+    summary,
+  ].join('\n');
+
+  fs.writeFileSync(filePath, content, 'utf8');
+  const fileSize = fs.statSync(filePath).size;
+
+  const record = await prisma.videoDownload.create({
+    data: {
+      userId,
+      title: `${title || 'Untitled video'} (AI Summary)`,
+      originalUrl,
+      filename,
+      filePath,
+      publicUrl: `/uploads/${filename}`,
+      fileSize,
+      duration: metadata?.duration || null,
+      thumbnail: metadata?.thumbnail || null,
+      service: 'ai-video-summary',
+    },
+  });
+
+  return {
+    id: record.id,
+    filename,
+    filePath,
+    publicUrl: `/uploads/${filename}`,
+    fileSize,
+  };
+}
+
 async function generateAiVideoSummary(url, userId) {
   ensureTempDir();
 
@@ -399,6 +453,14 @@ async function generateAiVideoSummary(url, userId) {
     }
 
     const summary = await summarizeTranscriptWithOpenRouter(transcript, metadata.title);
+    const artifact = await saveSummaryArtifact({
+      userId,
+      title: metadata.title,
+      originalUrl: url,
+      summary,
+      metadata,
+      transcriptSource,
+    });
 
     logger.info('AI summary completed', {
       userId,
@@ -409,12 +471,18 @@ async function generateAiVideoSummary(url, userId) {
     });
 
     return {
+      id: artifact.id,
       sessionId,
       model: OPENROUTER_MODEL,
       transcriptSource,
       video: metadata,
       transcript,
       summary,
+      artifact: {
+        filename: artifact.filename,
+        url: artifact.publicUrl,
+        fileSize: artifact.fileSize,
+      },
     };
   } finally {
     cleanupDirSafe(sessionDir);
@@ -461,14 +529,28 @@ async function generateAiVideoSummaryFromFile(videoPath, userId, originalFilenam
     }
 
     const summary = await summarizeTranscriptWithOpenRouter(transcript, metadata.title);
+    const artifact = await saveSummaryArtifact({
+      userId,
+      title: metadata.title,
+      originalUrl: '',
+      summary,
+      metadata,
+      transcriptSource,
+    });
 
     return {
+      id: artifact.id,
       sessionId,
       model: OPENROUTER_MODEL,
       transcriptSource,
       video: metadata,
       transcript,
       summary,
+      artifact: {
+        filename: artifact.filename,
+        url: artifact.publicUrl,
+        fileSize: artifact.fileSize,
+      },
     };
   } finally {
     cleanupDirSafe(sessionDir);

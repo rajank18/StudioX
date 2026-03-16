@@ -168,15 +168,6 @@ const AiSubtitleGenerator = () => {
     }
   };
 
-  const handleUseLink = async () => {
-    if (!youtubeUrl.trim()) {
-      setError('Please paste a YouTube URL first');
-      return;
-    }
-    setUploadedVideoFile(null);
-    await handleUpload();
-  };
-
   const handleCancel = () => {
     setYoutubeUrl('');
     setUploadedVideoFile(null);
@@ -222,7 +213,7 @@ const AiSubtitleGenerator = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="text-center space-y-2">
         <div className="flex justify-center mb-4">
           <div className="p-3 bg-orange-50 rounded-full">
@@ -233,41 +224,45 @@ const AiSubtitleGenerator = () => {
         <p className="text-gray-600">Paste YouTube link → Upload → Generate Subtitles</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 space-y-5">
-        <p className="text-xl font-semibold text-gray-900">Select Video File</p>
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 space-y-6">
+        <div className="space-y-2">
+          <label htmlFor="local-video" className="block text-sm font-medium text-gray-700">Select Video File</label>
 
-        <label
-          htmlFor="local-video"
-          className="block border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-primary transition-colors"
-        >
-          <input
-            id="local-video"
-            type="file"
-            accept="video/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0] || null;
-              setUploadedVideoFile(file);
-              if (file) {
-                setYoutubeUrl('');
-                setError('');
-              }
-            }}
-            className="hidden"
-            disabled={isBusy}
-          />
-          <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-          <p className="text-2xl text-gray-700 font-medium">
-            {uploadedVideoFile ? uploadedVideoFile.name : 'Click to upload a video file'}
-          </p>
-          <p className="text-gray-500 mt-1">MP4, WebM, MOV supported · Max 500MB</p>
-        </label>
+          <label
+            htmlFor="local-video"
+            className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary-50 transition-colors"
+          >
+            <input
+              id="local-video"
+              type="file"
+              accept="video/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setUploadedVideoFile(file);
+                if (file) {
+                  setYoutubeUrl('');
+                  setError('');
+                }
+              }}
+              className="hidden"
+              disabled={isBusy}
+            />
+            <div className="text-center">
+              <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm font-medium text-gray-700">
+                {uploadedVideoFile ? uploadedVideoFile.name : 'Click to upload a video file'}
+              </p>
+              <p className="text-xs text-gray-500">MP4, WebM, MOV supported • Max 500MB</p>
+            </div>
+          </label>
+        </div>
 
-        <div>
-          <label htmlFor="youtube-link" className="block text-2xl font-semibold text-gray-900 mb-2">
+        <div className="mt-3">
+          <label htmlFor="youtube-link" className="block text-sm font-medium text-gray-700">
             Or paste a YouTube link
           </label>
-          <div className="flex gap-3">
-            <div className="relative flex-1">
+          <div className="mt-2">
+            <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <LinkIcon className="h-5 w-5 text-gray-400" />
               </div>
@@ -280,26 +275,18 @@ const AiSubtitleGenerator = () => {
                   if (e.target.value.trim()) setUploadedVideoFile(null);
                 }}
                 placeholder="https://www.youtube.com/watch?v=..."
-                className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors text-black"
+                className="w-full pl-10 pr-4 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors text-gray-900 placeholder:text-gray-400"
                 disabled={isBusy}
               />
             </div>
-            <button
-              type="button"
-              onClick={handleUseLink}
-              disabled={isBusy || !youtubeUrl.trim()}
-              className="btn-primary px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Use link
-            </button>
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2 mt-3">
           <button
             onClick={handleUpload}
             disabled={isBusy || (!youtubeUrl.trim() && !uploadedVideoFile)}
-            className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="flex-1 btn-primary px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             type="button"
           >
             {isFetchingInfo ? (
@@ -318,7 +305,7 @@ const AiSubtitleGenerator = () => {
             type="button"
             onClick={handleCancel}
             disabled={isBusy}
-            className="btn-outline-primary px-8 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-outline-primary px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
