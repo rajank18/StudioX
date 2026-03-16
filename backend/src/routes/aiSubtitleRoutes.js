@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { clerkAuth, ensureUserExists } = require('../middleware/clerkAuth');
-const aiVideoSummaryController = require('../controllers/aiVideoSummaryController');
+const aiSubtitleController = require('../controllers/aiSubtitleController');
 
 const router = Router();
 
@@ -15,7 +15,7 @@ if (!fs.existsSync(uploadsDir)) {
 const upload = multer({
 	storage: multer.diskStorage({
 		destination: (req, file, cb) => cb(null, uploadsDir),
-		filename: (req, file, cb) => cb(null, `summary_upload_${Date.now()}_${file.originalname}`),
+		filename: (req, file, cb) => cb(null, `subtitle_upload_${Date.now()}_${file.originalname}`),
 	}),
 	limits: { fileSize: 500 * 1024 * 1024 },
 	fileFilter: (req, file, cb) => {
@@ -24,9 +24,9 @@ const upload = multer({
 	},
 });
 
-router.post('/youtube/info', clerkAuth, ensureUserExists, aiVideoSummaryController.getYoutubeVideoInfo);
-router.post('/youtube', clerkAuth, ensureUserExists, aiVideoSummaryController.generateYoutubeVideoSummary);
-router.post('/upload/info', clerkAuth, ensureUserExists, upload.single('video'), aiVideoSummaryController.getUploadedVideoInfo);
-router.post('/upload', clerkAuth, ensureUserExists, upload.single('video'), aiVideoSummaryController.generateUploadedVideoSummary);
+router.post('/youtube/info', clerkAuth, ensureUserExists, aiSubtitleController.getVideoInfo);
+router.post('/youtube/generate', clerkAuth, ensureUserExists, aiSubtitleController.generateSubtitles);
+router.post('/upload/info', clerkAuth, ensureUserExists, upload.single('video'), aiSubtitleController.getUploadedVideoInfo);
+router.post('/upload/generate', clerkAuth, ensureUserExists, upload.single('video'), aiSubtitleController.generateSubtitlesFromUpload);
 
 module.exports = router;

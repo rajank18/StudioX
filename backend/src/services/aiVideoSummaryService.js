@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const ytDlp = require('yt-dlp-exec');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('ffmpeg-static');
+const ffprobePath = require('ffprobe-static').path;
 const OpenAI = require('openai');
 const { AssemblyAI } = require('assemblyai');
 const logger = require('../utils/logger');
@@ -8,6 +11,9 @@ const logger = require('../utils/logger');
 const TEMP_DIR = path.join(__dirname, '..', 'temp', 'ai-summary');
 const YT_DLP_PATH = 'yt-dlp';
 const OPENROUTER_MODEL = 'openrouter/hunter-alpha';
+
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath);
 
 function ensureTempDir() {
   if (!fs.existsSync(TEMP_DIR)) {
@@ -56,6 +62,42 @@ function cleanupDirSafe(dirPath) {
   } catch (error) {
     logger.warn('Failed to cleanup AI summary temp directory', { dirPath, error: error.message });
   }
+}
+
+function formatDurationFromSeconds(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  const total = Math.floor(seconds);
+  const hh = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const ss = total % 60;
+
+  if (hh > 0) {
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+  }
+
+  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
+async function getLocalVideoMetadata(videoPath, originalFilename = '') {
+  const stats = fs.statSync(videoPath);
+  const title = originalFilename || path.basename(videoPath);
+
+  const ffprobeData = await new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(videoPath, (error, metadata) => {
+      if (error) return reject(error);
+      resolve(metadata || {});
+    });
+  });
+
+  const durationSeconds = ffprobeData?.format?.duration || 0;
+
+  return {
+    title,
+    duration: formatDurationFromSeconds(durationSeconds),
+    channel: 'Uploaded from device',
+    thumbnail: null,
+    fileSize: stats.size,
+  };
 }
 
 function normalizeTranscriptText(rawText) {
@@ -194,6 +236,26 @@ async function downloadYoutubeAudio(url, sessionDir) {
   }
 
   return files[0].fullPath;
+}
+
+async function extractAudioFromLocalVideo(videoPath, sessionDir) {
+  const audioPath = path.join(sessionDir, `audio_${Date.now()}.mp3`);
+
+  await new Promise((resolve, reject) => {
+    ffmpeg(videoPath)
+      .outputOptions(['-vn', '-ac', '1', '-ar', '16000', '-b:a', '128k'])
+      .audioCodec('libmp3lame')
+      .output(audioPath)
+      .on('end', resolve)
+      .on('error', reject)
+      .run();
+  });
+
+  if (!fs.existsSync(audioPath)) {
+    throw new Error('Failed to extract audio from uploaded video');
+  }
+
+  return audioPath;
 }
 
 async function transcribeAudioWithWhisper(audioPath) {
@@ -359,7 +421,63 @@ async function generateAiVideoSummary(url, userId) {
   }
 }
 
+async function generateAiVideoSummaryFromFile(videoPath, userId, originalFilename = '') {
+  ensureTempDir();
+
+  const sessionId = `summary_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const sessionDir = path.join(TEMP_DIR, sessionId);
+  fs.mkdirSync(sessionDir, { recursive: true });
+
+  try {
+    logger.info('AI summary (upload) started', { userId, sessionId, originalFilename });
+
+    const metadata = await getLocalVideoMetadata(videoPath, originalFilename);
+    const audioPath = await extractAudioFromLocalVideo(videoPath, sessionDir);
+
+    let transcript = '';
+    let transcriptSource = 'assemblyai';
+
+    if (process.env.ASSEMBLYAI_API_KEY) {
+      try {
+        transcript = await transcribeAudioWithAssemblyAi(audioPath);
+      } catch (assemblyError) {
+        logger.warn('AssemblyAI transcription failed for upload, checking Whisper fallback', {
+          sessionId,
+          error: assemblyError.message,
+        });
+
+        if (process.env.OPENAI_API_KEY) {
+          transcript = await transcribeAudioWithWhisper(audioPath);
+          transcriptSource = 'whisper';
+        } else {
+          throw new Error(`AssemblyAI transcription failed: ${assemblyError.message}`);
+        }
+      }
+    } else if (process.env.OPENAI_API_KEY) {
+      transcript = await transcribeAudioWithWhisper(audioPath);
+      transcriptSource = 'whisper';
+    } else {
+      throw new Error('No transcription provider key found. Set ASSEMBLYAI_API_KEY (recommended) or OPENAI_API_KEY.');
+    }
+
+    const summary = await summarizeTranscriptWithOpenRouter(transcript, metadata.title);
+
+    return {
+      sessionId,
+      model: OPENROUTER_MODEL,
+      transcriptSource,
+      video: metadata,
+      transcript,
+      summary,
+    };
+  } finally {
+    cleanupDirSafe(sessionDir);
+  }
+}
+
 module.exports = {
   generateAiVideoSummary,
   getYoutubeMetadata,
+  getLocalVideoMetadata,
+  generateAiVideoSummaryFromFile,
 };
