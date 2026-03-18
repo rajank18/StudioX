@@ -1,32 +1,31 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import {
-  FileText,
-  Loader,
-  Copy,
-  Download,
-  CheckCircle,
-  AlertCircle,
-  Link as LinkIcon,
+  Type,
   Upload,
+  Loader,
+  AlertCircle,
   Clock3,
   Tv,
+  Download,
+  Link as LinkIcon,
+  FileText,
+  Video,
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
-const AiVideoSummary = () => {
+const AiSubtitleGenerator = () => {
   const { getToken } = useAuth();
   const { user } = useUser();
 
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [uploadedVideoFile, setUploadedVideoFile] = useState(null);
+  const [videoInfo, setVideoInfo] = useState(null);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [videoInfo, setVideoInfo] = useState(null);
-  const [summaryData, setSummaryData] = useState(null);
 
   const isBusy = isFetchingInfo || isGenerating;
 
@@ -53,7 +52,7 @@ const AiVideoSummary = () => {
     };
   };
 
-  const handleFetchVideoInfo = async () => {
+  const handleUpload = async () => {
     const trimmedUrl = youtubeUrl.trim();
     const isFileMode = Boolean(uploadedVideoFile);
 
@@ -68,8 +67,8 @@ const AiVideoSummary = () => {
     }
 
     setError('');
-    setSummaryData(null);
     setVideoInfo(null);
+    setResult(null);
     setIsFetchingInfo(true);
 
     try {
@@ -83,7 +82,7 @@ const AiVideoSummary = () => {
         const userId = user?.id || '';
         const userEmail = user?.emailAddresses?.[0]?.emailAddress || '';
 
-        response = await fetch(`${API_BASE_URL}/api/ai-video-summary/upload/info`, {
+        response = await fetch(`${API_BASE_URL}/api/ai-subtitle/upload/info`, {
           method: 'POST',
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -93,41 +92,38 @@ const AiVideoSummary = () => {
           body: formData,
         });
       } else {
-        response = await fetch(`${API_BASE_URL}/api/ai-video-summary/youtube/info`, {
+        response = await fetch(`${API_BASE_URL}/api/ai-subtitle/youtube/info`, {
           method: 'POST',
           headers: await authHeaders(),
           body: JSON.stringify({ url: trimmedUrl }),
         });
       }
 
-      const result = await response.json();
+      const payload = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Unauthorized. Please sign in again and retry.');
-        }
-        throw new Error(result.error || 'Failed to fetch video info');
+        throw new Error(payload.error || 'Failed to fetch video info');
       }
 
-      setVideoInfo(result.data);
+      setVideoInfo(payload.data);
     } catch (err) {
-      setError(err.message || 'Unable to fetch video info right now');
+      setError(err.message || 'Unable to fetch video info');
     } finally {
       setIsFetchingInfo(false);
     }
   };
 
-  const handleGenerateSummary = async () => {
+  const handleGenerateSubtitles = async () => {
     const trimmedUrl = youtubeUrl.trim();
     const isFileMode = Boolean(uploadedVideoFile);
 
     if (!videoInfo) {
-      setError('Please fetch video info first');
+      setError('Please upload/fetch video info first');
       return;
     }
 
     setError('');
-    setSummaryData(null);
+    setResult(null);
     setIsGenerating(true);
 
     try {
@@ -141,7 +137,7 @@ const AiVideoSummary = () => {
         const userId = user?.id || '';
         const userEmail = user?.emailAddresses?.[0]?.emailAddress || '';
 
-        response = await fetch(`${API_BASE_URL}/api/ai-video-summary/upload`, {
+        response = await fetch(`${API_BASE_URL}/api/ai-subtitle/upload/generate`, {
           method: 'POST',
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -151,25 +147,22 @@ const AiVideoSummary = () => {
           body: formData,
         });
       } else {
-        response = await fetch(`${API_BASE_URL}/api/ai-video-summary/youtube`, {
+        response = await fetch(`${API_BASE_URL}/api/ai-subtitle/youtube/generate`, {
           method: 'POST',
           headers: await authHeaders(),
           body: JSON.stringify({ url: trimmedUrl }),
         });
       }
 
-      const result = await response.json();
+      const payload = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Unauthorized. Please sign in again and retry.');
-        }
-        throw new Error(result.error || 'Failed to generate summary');
+        throw new Error(payload.error || 'Failed to generate subtitles');
       }
 
-      setSummaryData(result.data);
+      setResult(payload.data);
     } catch (err) {
-      setError(err.message || 'Unable to generate summary right now');
+      setError(err.message || 'Unable to generate subtitles right now');
     } finally {
       setIsGenerating(false);
     }
@@ -179,73 +172,56 @@ const AiVideoSummary = () => {
     setYoutubeUrl('');
     setUploadedVideoFile(null);
     setVideoInfo(null);
-    setSummaryData(null);
+    setResult(null);
     setError('');
   };
 
-  const cleanedSummary = useMemo(() => {
-    if (!summaryData?.summary) return '';
+  const videoPreviewUrl = result?.video?.url ? `${API_BASE_URL}${result.video.url}` : null;
+  const subtitleDownloadUrl = result?.subtitle?.url ? `${API_BASE_URL}${result.subtitle.url}` : null;
+  const videoDownloadUrl = result?.video?.url ? `${API_BASE_URL}${result.video.url}` : null;
 
-    return summaryData.summary
-      .replace(/\*\*/g, '')
-      .replace(/^#{1,6}\s*/gm, '')
-      .replace(/^\s*TL\s*;?\s*DR\s*:?\s*$/gim, 'One-line Summary')
-      .replace(/^[-]{3,}\s*$/gm, '')
-      .replace(/^\s*[-*]\s+/gm, '• ')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  }, [summaryData]);
-
-  const formattedLines = useMemo(() => {
-    if (!cleanedSummary) return [];
-
-    return cleanedSummary.split('\n').map((line) => line.trim()).filter(Boolean);
-  }, [cleanedSummary]);
-
-  const handleCopy = async () => {
-    if (!cleanedSummary) return;
-
-    await navigator.clipboard.writeText(cleanedSummary);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  const handleDownloadTxt = () => {
-    if (!cleanedSummary) return;
-
-    const fileContent = [
-      'AI Video Summary',
-      '================',
-      `Title: ${summaryData?.video?.title || 'N/A'}`,
-      `Duration: ${summaryData?.video?.duration || 'N/A'}`,
-      `Channel: ${summaryData?.video?.channel || 'N/A'}`,
-      '',
-      cleanedSummary,
-    ].join('\n');
-
-    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+  const directDownload = async (url, filename) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Download failed');
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url;
-    link.download = `video-summary-${Date.now()}.txt`;
+    link.href = objectUrl;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(objectUrl);
   };
 
-  const isHeading = (line) => /^(summary|one-line summary|tldr|tl;dr|key points|actionable takeaways)\s*:?$/i.test(line);
+  const handleDownloadVideo = async () => {
+    if (!videoDownloadUrl) return;
+    try {
+      await directDownload(videoDownloadUrl, result?.video?.filename || 'subtitled-video.mp4');
+    } catch (err) {
+      setError(err.message || 'Unable to download video');
+    }
+  };
+
+  const handleDownloadSrt = async () => {
+    if (!subtitleDownloadUrl) return;
+    try {
+      await directDownload(subtitleDownloadUrl, result?.subtitle?.filename || 'subtitles.srt');
+    } catch (err) {
+      setError(err.message || 'Unable to download subtitle file');
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="text-center space-y-2">
         <div className="flex justify-center mb-4">
           <div className="p-3 bg-orange-50 rounded-full">
-            <FileText className="w-8 h-8 text-primary" />
+            <Type className="w-8 h-8 text-primary" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">AI Video Summary</h1>
-        <p className="text-gray-600">Paste YouTube link → Fetch Video Info → Generate Summary</p>
+        <h1 className="text-3xl font-bold text-gray-900">AI Subtitle Generator</h1>
+        <p className="text-gray-600">Paste YouTube link → Upload → Generate Subtitles</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 space-y-6">
@@ -308,7 +284,7 @@ const AiVideoSummary = () => {
 
         <div className="flex gap-2 mt-3">
           <button
-            onClick={handleFetchVideoInfo}
+            onClick={handleUpload}
             disabled={isBusy || (!youtubeUrl.trim() && !uploadedVideoFile)}
             className="flex-1 btn-primary px-4 py-2 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             type="button"
@@ -358,8 +334,9 @@ const AiVideoSummary = () => {
                   <span>Channel: {videoInfo.channel || 'N/A'}</span>
                 </div>
               </div>
+
               <button
-                onClick={handleGenerateSummary}
+                onClick={handleGenerateSubtitles}
                 disabled={isBusy}
                 className="mt-3 btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 type="button"
@@ -367,12 +344,12 @@ const AiVideoSummary = () => {
                 {isGenerating ? (
                   <>
                     <Loader className="w-5 h-5 animate-spin" />
-                    <span>Generating Summary...</span>
+                    <span>Generating Subtitles...</span>
                   </>
                 ) : (
                   <>
                     <FileText className="w-5 h-5" />
-                    <span>Generate Summary</span>
+                    <span>Generate Subtitles</span>
                   </>
                 )}
               </button>
@@ -388,48 +365,56 @@ const AiVideoSummary = () => {
         </div>
       )}
 
-      {cleanedSummary && (
+      {result && (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 space-y-5">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Summary Result</h2>
-              <p className="text-sm text-gray-600 mt-1">{summaryData?.video?.title || 'Untitled video'}</p>
+              <h2 className="text-xl font-semibold text-gray-900">Subtitled Video Ready</h2>
+              <p className="text-sm text-gray-600 mt-1">{result?.videoInfo?.title || 'Your video'}</p>
             </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleCopy}
-                className="btn-outline-primary flex items-center gap-2 cursor-pointer"
-                type="button"
-              >
-                {copied ? <CheckCircle className="w-4 h-3" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? 'Copied' : 'Copy'}</span>
-              </button>
-              <button
-                onClick={handleDownloadTxt}
-                className="btn-primary flex items-center gap-2 cursor-pointer"
-                type="button"
-              >
-                <Download className="w-4 h-3" />
-                <span>Download .txt</span>
-              </button>
+            <div className="flex gap-2 flex-wrap">
+              {videoDownloadUrl && (
+                <button
+                  onClick={handleDownloadVideo}
+                  className="btn-primary flex items-center gap-2"
+                  type="button"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Video</span>
+                </button>
+              )}
+              {subtitleDownloadUrl && (
+                <button
+                  onClick={handleDownloadSrt}
+                  className="btn-outline-primary flex items-center gap-2"
+                  type="button"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download .srt</span>
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 space-y-3">
-            {formattedLines.map((line, idx) => (
-              <p
-                key={`${line}-${idx}`}
-                className={isHeading(line) ? 'text-base font-semibold text-gray-900 mt-2' : 'text-sm leading-6 text-gray-800'}
-              >
-                {line}
-              </p>
-            ))}
-          </div>
+          {videoPreviewUrl ? (
+            <div className="rounded-lg border border-gray-200 bg-black overflow-hidden">
+              <video
+                src={videoPreviewUrl}
+                controls
+                className="w-full h-auto"
+                preload="metadata"
+              />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-10 text-center text-gray-500">
+              <Video className="w-8 h-8 mx-auto mb-2" />
+              <p>Preview unavailable</p>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 };
 
-export default AiVideoSummary;
+export default AiSubtitleGenerator;

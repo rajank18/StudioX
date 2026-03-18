@@ -94,6 +94,8 @@ const Home = () => {
                       navigate('/video-to-gif');
                     } else if (tool.title === "YouTube Downloader") {
                       navigate('/yt-downloader');
+                    } else if (tool.title === "Auto Subtitles") {
+                      navigate('/ai-subtitle-generator');
                     } else if (tool.title === "Silence Remover") {
                       navigate('/remove-silence');
                     } else if (tool.title === "Crop & Resize") {

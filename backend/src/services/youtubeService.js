@@ -239,13 +239,15 @@ async function getUserVideos(userId) {
   });
 
   // Get silence remover tasks
-  const silenceTasks = await prisma.silenceRemoverTask.findMany({
-    where: { 
-      userId,
-      status: 'completed' // Only show completed tasks
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const silenceTasks = prisma.silenceRemoverTask
+    ? await prisma.silenceRemoverTask.findMany({
+        where: {
+          userId,
+          status: 'completed' // Only show completed tasks
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+    : [];
 
   // Transform silence tasks to match video download format
   const transformedSilenceTasks = silenceTasks.map(task => ({
@@ -307,9 +309,11 @@ async function deleteUserVideo(userId, videoId) {
   }
 
   // Try silence remover task
-  const silenceTask = await prisma.silenceRemoverTask.findFirst({
-    where: { id: videoId, userId },
-  });
+  const silenceTask = prisma.silenceRemoverTask
+    ? await prisma.silenceRemoverTask.findFirst({
+        where: { id: videoId, userId },
+      })
+    : null;
 
   if (silenceTask) {
     // Delete files from disk
@@ -325,9 +329,11 @@ async function deleteUserVideo(userId, videoId) {
     }
 
     // Delete from database
-    await prisma.silenceRemoverTask.delete({
-      where: { id: videoId },
-    });
+    if (prisma.silenceRemoverTask) {
+      await prisma.silenceRemoverTask.delete({
+        where: { id: videoId },
+      });
+    }
 
     return { success: true };
   }
@@ -345,9 +351,11 @@ async function deleteAllUserVideos(userId) {
   });
 
   // Get all silence remover tasks
-  const silenceTasks = await prisma.silenceRemoverTask.findMany({
-    where: { userId },
-  });
+  const silenceTasks = prisma.silenceRemoverTask
+    ? await prisma.silenceRemoverTask.findMany({
+        where: { userId },
+      })
+    : [];
 
   // Delete video download files from disk
   for (const video of videos) {
@@ -386,9 +394,11 @@ async function deleteAllUserVideos(userId) {
     where: { userId },
   });
 
-  const silenceResult = await prisma.silenceRemoverTask.deleteMany({
-    where: { userId },
-  });
+  const silenceResult = prisma.silenceRemoverTask
+    ? await prisma.silenceRemoverTask.deleteMany({
+        where: { userId },
+      })
+    : { count: 0 };
 
   return videoResult.count + silenceResult.count;
 }

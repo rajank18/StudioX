@@ -16,7 +16,7 @@ const noiseReductionRoutes = require('./routes/noiseReductionRoutes');
 const thumbnailRoutes = require('./routes/thumbnailRoutes');
 const cropResizeRoutes = require('./routes/cropResizeRoutes');
 const aiVideoSummaryRoutes = require('./routes/aiVideoSummaryRoutes');
-const autoSubtitleRoutes = require('./routes/autoSubtitleRoutes');
+const aiSubtitleRoutes = require('./routes/aiSubtitleRoutes');
 
 const app = express();
 
@@ -109,8 +109,8 @@ app.use('/api', silenceRemoverRoutes);
 app.use('/api/thumbnail', thumbnailRoutes);
 // AI Video Summary routes
 app.use('/api/ai-video-summary', aiVideoSummaryRoutes);
-// Auto Subtitle routes
-app.use('/api/auto-subtitle', autoSubtitleRoutes);
+// AI Subtitle generator routes
+app.use('/api/ai-subtitle', aiSubtitleRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
