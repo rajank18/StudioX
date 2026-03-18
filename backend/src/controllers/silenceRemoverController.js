@@ -4,10 +4,9 @@ const logger = require('../utils/logger');
 const {
     removeSilenceFromAudio,
     getUserSilenceRemoverTasks,
+    getSilenceRemoverTaskById,
     deleteSilenceRemoverTask,
 } = require('../services/silenceRemoverService');
-
-const TEMP_OUTPUTS_DIR = path.join(__dirname, '..', 'temp', 'outputs');
 
 /**
  * POST /api/remove-silence
@@ -98,24 +97,10 @@ const downloadProcessedAudio = async (req, res) => {
             return res.status(401).json({ error: 'Authentication required' });
         }
 
-        // Fetch task from database
-        const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
-
-        const task = await prisma.silenceRemoverTask.findUnique({
-            where: { id: taskId },
-        });
+        const task = await getSilenceRemoverTaskById(taskId, userId);
 
         if (!task) {
             return res.status(404).json({ error: 'Task not found' });
-        }
-
-        if (task.userId !== userId) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        if (task.status !== 'completed') {
-            return res.status(400).json({ error: 'Task not completed yet' });
         }
 
         const outputPath = task.outputFilePath;
@@ -185,19 +170,10 @@ const getTaskDetails = async (req, res) => {
             return res.status(401).json({ error: 'Authentication required' });
         }
 
-        const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
-
-        const task = await prisma.silenceRemoverTask.findUnique({
-            where: { id: taskId },
-        });
+        const task = await getSilenceRemoverTaskById(taskId, userId);
 
         if (!task) {
             return res.status(404).json({ error: 'Task not found' });
-        }
-
-        if (task.userId !== userId) {
-            return res.status(403).json({ error: 'Unauthorized' });
         }
 
         return res.status(200).json({

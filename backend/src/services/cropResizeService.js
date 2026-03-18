@@ -3,6 +3,7 @@ const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const ffprobePath = require('ffprobe-static').path;
+const prisma = require('../config/prisma');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
@@ -45,7 +46,9 @@ async function probeVideo(filePath) {
  * @param {number} options.cropHeight - Crop height (pixels)
  * @param {number} [options.outWidth] - Optional output width (resize after crop)
  * @param {number} [options.outHeight] - Optional output height (resize after crop)
- * @returns {Promise<{ outputPath: string, publicUrl: string, filename: string }>}
+ * @param {string} [options.userId] - User ID for persistence
+ * @param {string} [options.originalTitle] - Original uploaded filename/title
+ * @returns {Promise<{ outputPath: string, publicUrl: string, filename: string, videoId?: string }>}
  */
 async function cropAndTrimVideo(options) {
   const {
@@ -58,6 +61,8 @@ async function cropAndTrimVideo(options) {
     cropHeight,
     outWidth,
     outHeight,
+    userId,
+    originalTitle = 'Crop & Resize Output',
   } = options;
 
   const duration = endTime != null && endTime > startTime ? endTime - startTime : null;
@@ -105,7 +110,28 @@ async function cropAndTrimVideo(options) {
   }, 10 * 60 * 1000);
 
   const publicUrl = `/uploads/${outputFile}`;
-  return { outputPath, publicUrl, filename: outputFile };
+  let videoRecord = null;
+  if (userId) {
+    try {
+      const fileSize = fs.statSync(outputPath).size;
+      videoRecord = await prisma.userOutput.create({
+        data: {
+          userId,
+          title: originalTitle,
+          originalUrl: '',
+          filename: outputFile,
+          filePath: outputPath,
+          publicUrl,
+          fileSize,
+          service: 'crop-resize',
+        },
+      });
+    } catch (err) {
+      console.error('Failed to save crop-resize output to database:', err);
+    }
+  }
+
+  return { outputPath, publicUrl, filename: outputFile, videoId: videoRecord?.id };
 }
 
 module.exports = { probeVideo, cropAndTrimVideo };

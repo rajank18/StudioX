@@ -10,8 +10,27 @@ let server;
 
 const startServer = async () => {
   try {
-    await prisma.$connect();
-    logger.info('Database connected successfully');
+    const cloudUrl = process.env.DATABASE_URL;
+    const localUrl = process.env.DATABASE_URL_LOCAL;
+
+    try {
+      await prisma.$connect();
+      logger.info('Database connected successfully (primary)');
+    } catch (primaryError) {
+      if (!localUrl) {
+        throw primaryError;
+      }
+
+      logger.warn('Primary database connection failed, switching to local fallback', {
+        primaryUrl: cloudUrl ? 'configured' : 'missing',
+        hasLocalFallback: Boolean(localUrl),
+        error: primaryError.message,
+      });
+
+      await prisma.__switchDatabaseUrl(localUrl);
+      await prisma.$connect();
+      logger.info('Database connected successfully (local fallback)');
+    }
 
     server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);

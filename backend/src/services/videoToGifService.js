@@ -72,7 +72,7 @@ async function convertToGif(inputPath, startTime = 0, duration = 1, gifWidth = 6
   let videoRecord = null;
   if (userId) {
     try {
-      videoRecord = await prisma.videoDownload.create({
+      videoRecord = await prisma.userOutput.create({
         data: {
           userId,
           title: originalTitle,

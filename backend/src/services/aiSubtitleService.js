@@ -274,7 +274,7 @@ async function generateSubtitledVideo(url, userId) {
     let record = null;
     if (userId) {
       try {
-        record = await prisma.videoDownload.create({
+        record = await prisma.userOutput.create({
           data: {
             userId,
             title: `${videoInfo.title} (Subtitled)`,
@@ -343,7 +343,7 @@ async function generateSubtitledVideoFromFile(videoPath, userId, originalFilenam
     let record = null;
     if (userId) {
       try {
-        record = await prisma.videoDownload.create({
+        record = await prisma.userOutput.create({
           data: {
             userId,
             title: `${videoInfo.title} (Subtitled)`,

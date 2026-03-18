@@ -226,7 +226,7 @@ async function addTextToFrame(framePath, text, options = {}) {
  */
 async function saveThumbnailTask(userId, videoFilename, sessionId, frameCount) {
   try {
-    const thumbnail = await prisma.videoDownload.create({
+    const thumbnail = await prisma.userOutput.create({
       data: {
         userId,
         title: `Thumbnail Frames - ${videoFilename}`,
