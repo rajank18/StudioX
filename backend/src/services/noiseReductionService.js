@@ -123,7 +123,7 @@ async function applyNoiseReduction(inputPath, noiseReduction = 70, voiceEnhancem
     let videoRecord = null;
     if (userId) {
       try {
-        videoRecord = await prisma.videoDownload.create({
+        videoRecord = await prisma.userOutput.create({
           data: {
             userId,
             title: originalTitle,

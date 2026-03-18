@@ -88,6 +88,8 @@ async function processCropResize(req, res) {
       cropHeight: cropHClamp,
       outWidth: outWidth > 0 ? outWidth : null,
       outHeight: outHeight > 0 ? outHeight : null,
+      userId,
+      originalTitle: `Crop & Resize - ${req.file.originalname || 'video'}`,
     });
 
     let remainingCredits = null;
@@ -110,6 +112,7 @@ async function processCropResize(req, res) {
     return res.status(200).json({
       url: result.publicUrl,
       filename: result.filename,
+      videoId: result.videoId,
       remainingCredits,
     });
   } catch (err) {

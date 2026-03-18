@@ -379,7 +379,7 @@ async function saveSummaryArtifact({
   fs.writeFileSync(filePath, content, 'utf8');
   const fileSize = fs.statSync(filePath).size;
 
-  const record = await prisma.videoDownload.create({
+  const record = await prisma.userOutput.create({
     data: {
       userId,
       title: `${title || 'Untitled video'} (AI Summary)`,

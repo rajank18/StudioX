@@ -155,77 +155,79 @@ async function removeSilenceFromAudio(params) {
     
     const inputPath = path.join(TEMP_UPLOADS_DIR, inputFileName);
     const outputPath = path.join(TEMP_OUTPUTS_DIR, outputFileName);
+    const publicUrl = `/uploads/${outputFileName}`;
 
     try {
         // 1. Write input file to temp folder
         await fs.promises.writeFile(inputPath, fileBuffer);
         logger.info(`Input file saved: ${inputPath}`);
 
-        // 2. Create database record with "processing" status
-        let task = await prisma.silenceRemoverTask.create({
-            data: {
-                userId,
-                inputFileName,
-                inputFilePath: inputPath,
-                outputFileName,
-                outputFilePath: outputPath,
-                status: 'processing',
-                accuracy: 80.0,
-            },
-        });
-        logger.info(`Task created with ID: ${task.id}`);
-
-        // 3. Get original audio duration
+        // 2. Get original audio duration
         const originalDuration = await getAudioDuration(inputPath);
 
-        // 4. Process audio with enhanced filters
+        // 3. Process audio with enhanced filters
         await processAudioWithEnhancedFilters(inputPath, outputPath);
 
-        // 5. Verify output file exists
+        // 4. Verify output file exists
         if (!fs.existsSync(outputPath)) {
             throw new Error('Output file was not created');
         }
 
-        // 6. Get processed audio duration
+        // 5. Get processed audio duration
         const processedDuration = await getAudioDuration(outputPath);
 
-        // 7. Calculate silence removed percentage
+        // 6. Calculate silence removed percentage
         const silenceRemoved = await calculateSilenceRemovalPercentage(inputPath, outputPath);
+        const fileSize = fs.statSync(outputPath).size;
+        const accuracy = Math.min(95 + (silenceRemoved / 10), 98);
 
-        // 8. Update task record with success
-        task = await prisma.silenceRemoverTask.update({
-            where: { id: task.id },
+        // 7. Save completed result in UserOutput
+        const record = await prisma.userOutput.create({
             data: {
-                status: 'completed',
-                originalDuration,
-                processedDuration,
-                silenceRemoved,
-                accuracy: Math.min(95 + (silenceRemoved / 10), 98), // Higher accuracy with more silence removed
-                metadata: {
-                    sessionId,
-                    processingTime: `${Date.now() - timestamp}ms`,
-                    silenceRemovalAlgorithm: 'enhanced_ffmpeg_v1',
-                },
+                userId,
+                title: `Silence Removed - ${originalFileName}`,
+                originalUrl: '',
+                filename: outputFileName,
+                filePath: outputPath,
+                publicUrl,
+                fileSize,
+                duration: processedDuration,
+                thumbnail: null,
+                service: 'silence-remover',
             },
         });
 
+        const task = {
+            id: record.id,
+            userId,
+            inputFileName,
+            inputFilePath: inputPath,
+            outputFileName,
+            outputFilePath: outputPath,
+            status: 'completed',
+            originalDuration,
+            processedDuration,
+            silenceRemoved,
+            accuracy,
+            createdAt: record.createdAt,
+            updatedAt: record.updatedAt,
+            publicUrl,
+            fileSize,
+        };
+
         logger.info(`Silence removal completed for task ${task.id}`);
+
+        try {
+            if (fs.existsSync(inputPath)) {
+                await fs.promises.unlink(inputPath);
+            }
+        } catch (cleanupErr) {
+            logger.warn('Error cleaning up silence remover input file:', cleanupErr);
+        }
 
         return { task, outputPath };
     } catch (error) {
         logger.error('Error in removeSilenceFromAudio:', error);
-
-        // Update task record with error
-        await prisma.silenceRemoverTask.updateMany({
-            where: {
-                inputFilePath: inputPath,
-                status: 'processing',
-            },
-            data: {
-                status: 'failed',
-                errorMessage: error.message,
-            },
-        });
 
         // Cleanup
         try {
@@ -251,16 +253,70 @@ async function removeSilenceFromAudio(params) {
  */
 async function getUserSilenceRemoverTasks(userId, limit = 20) {
     try {
-        const tasks = await prisma.silenceRemoverTask.findMany({
-            where: { userId },
+        const records = await prisma.userOutput.findMany({
+            where: {
+                userId,
+                service: 'silence-remover',
+            },
             orderBy: { createdAt: 'desc' },
             take: limit,
         });
-        return tasks;
+
+        return records.map((record) => ({
+            id: record.id,
+            userId: record.userId,
+            inputFileName: null,
+            inputFilePath: null,
+            outputFileName: record.filename,
+            outputFilePath: record.filePath,
+            status: 'completed',
+            accuracy: null,
+            originalDuration: null,
+            processedDuration: record.duration,
+            silenceRemoved: null,
+            errorMessage: null,
+            metadata: null,
+            publicUrl: record.publicUrl,
+            fileSize: record.fileSize,
+            createdAt: record.createdAt,
+            updatedAt: record.updatedAt,
+        }));
     } catch (error) {
         logger.error('Error fetching silence remover tasks:', error);
         throw error;
     }
+}
+
+async function getSilenceRemoverTaskById(taskId, userId) {
+    const record = await prisma.userOutput.findFirst({
+        where: {
+            id: taskId,
+            userId,
+            service: 'silence-remover',
+        },
+    });
+
+    if (!record) return null;
+
+    return {
+        id: record.id,
+        userId: record.userId,
+        inputFileName: null,
+        inputFilePath: null,
+        outputFileName: record.filename,
+        outputFilePath: record.filePath,
+        status: 'completed',
+        accuracy: null,
+        originalDuration: null,
+        processedDuration: record.duration,
+        silenceRemoved: null,
+        errorMessage: null,
+        metadata: null,
+        publicUrl: record.publicUrl,
+        fileSize: record.fileSize,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+    };
 }
 
 /**
@@ -271,32 +327,29 @@ async function getUserSilenceRemoverTasks(userId, limit = 20) {
  */
 async function deleteSilenceRemoverTask(taskId, userId) {
     try {
-        const task = await prisma.silenceRemoverTask.findUnique({
-            where: { id: taskId },
+        const record = await prisma.userOutput.findFirst({
+            where: {
+                id: taskId,
+                userId,
+                service: 'silence-remover',
+            },
         });
 
-        if (!task) {
+        if (!record) {
             throw new Error('Task not found');
-        }
-
-        if (task.userId !== userId) {
-            throw new Error('Unauthorized');
         }
 
         // Cleanup files
         try {
-            if (fs.existsSync(task.inputFilePath)) {
-                await fs.promises.unlink(task.inputFilePath);
-            }
-            if (fs.existsSync(task.outputFilePath)) {
-                await fs.promises.unlink(task.outputFilePath);
+            if (record.filePath && fs.existsSync(record.filePath)) {
+                await fs.promises.unlink(record.filePath);
             }
         } catch (cleanupErr) {
             logger.warn('Error cleaning up files:', cleanupErr);
         }
 
         // Delete record
-        await prisma.silenceRemoverTask.delete({
+        await prisma.userOutput.delete({
             where: { id: taskId },
         });
 
@@ -311,6 +364,7 @@ async function deleteSilenceRemoverTask(taskId, userId) {
 module.exports = {
     removeSilenceFromAudio,
     getUserSilenceRemoverTasks,
+    getSilenceRemoverTaskById,
     deleteSilenceRemoverTask,
     getAudioDuration,
     ensureTempDirs,

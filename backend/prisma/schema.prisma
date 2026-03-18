@@ -46,8 +46,7 @@ model User {
   usageLogs        UsageLog[]
   aiTasks          AiTask[]
   transactions     Transaction[]
-  videoDownloads   VideoDownload[]
-  silenceRemoverTasks SilenceRemoverTask[]
+  userOutputs      UserOutput[]
 }
 
 // ========================================================
@@ -99,10 +98,10 @@ model Transaction {
 }
 
 // ========================================================
-//                VIDEO DOWNLOAD MODEL
-//  - Stores user's downloaded videos from YouTube etc.
+//                  USER OUTPUT MODEL
+//  - Stores user-generated/exported outputs across services
 // ========================================================
-model VideoDownload {
+model UserOutput {
   id           String   @id @default(cuid())
   userId       String
   user         User     @relation(fields: [userId], references: [id])
@@ -119,32 +118,7 @@ model VideoDownload {
   
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  @@map("UserOutput")
 }
 
-// ========================================================
-//              SILENCE REMOVER TASK MODEL
-//  - Stores silence remover processing jobs
-//  - Tracks input/output files and processing status
-// ========================================================
-model SilenceRemoverTask {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
-
-  inputFileName   String    // Original audio filename
-  inputFilePath   String    // Path to input file in temp folder
-  outputFileName  String    // Processed audio filename
-  outputFilePath  String    // Path to output file in temp folder
-  
-  status          String    @default("pending") // pending, processing, completed, failed
-  accuracy        Float     @default(80.0)      // Accuracy percentage
-  originalDuration String?   // Duration of original audio
-  processedDuration String?  // Duration of processed audio (silence removed)
-  silenceRemoved  Float?     // Percentage of silence removed
-  
-  errorMessage    String?   // Error message if failed
-  metadata        Json?     // Additional metadata (codec, bitrate, etc.)
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-}

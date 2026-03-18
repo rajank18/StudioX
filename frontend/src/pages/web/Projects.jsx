@@ -154,6 +154,8 @@ const Projects = () => {
         return <VolumeX className="w-4 h-4" />;
       case 'video-to-gif':
         return <Image className="w-4 h-4" />;
+      case 'crop-resize':
+        return <Video className="w-4 h-4" />;
       case 'ai-subtitle-generator':
         return <FileText className="w-4 h-4" />;
       case 'ai-video-summary':
@@ -173,6 +175,8 @@ const Projects = () => {
         return 'Silence Remover';
       case 'video-to-gif':
         return 'Video to GIF';
+      case 'crop-resize':
+        return 'Crop & Resize';
       case 'ai-subtitle-generator':
         return 'AI Subtitle Generator';
       case 'ai-video-summary':
