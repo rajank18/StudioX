@@ -12,6 +12,7 @@
     "prisma:push": "prisma db push"
   },
   "dependencies": {
+    "redis": "^5.11.0",
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@prisma/client": "^6.15.0",
     "assemblyai": "^4.27.0",
@@ -26,6 +27,7 @@
     "node-cron": "^4.2.1",
     "openai": "^6.10.0",
     "prisma": "^6.15.0",
+    "redis": "^5.11.0",
     "replicate": "^1.4.0",
     "sharp": "^0.34.5",
     "yt-dlp-exec": "^1.0.2",

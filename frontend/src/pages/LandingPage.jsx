@@ -104,7 +104,7 @@ const LandingPage = () => {
       <Navbar/>
       <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-gradient-to-b from-[#fff8e8] to-gray-800">
         {/* Subtle Pattern Background */}
-        <div className="absolute inset-0 opacity-80">
+        <div className="absolute inset-0 opacity-100">
           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
         </div>
 
@@ -137,12 +137,7 @@ const LandingPage = () => {
               >
                 Start for Free
               </button>
-              <button 
-                onClick={() => navigate('/sign-in')}
-                className="relative w-full sm:w-auto px-8 py-4 rounded-lg bg-white border-2 cursor-pointer border-gray-300 text-gray-700 font-semibold text-base hover:bg-gray-50 hover:border-gray-400 transition-all duration-300"
-              >
-                Get a Demo
-              </button>
+              
             </motion.div>
 
             {/* Social Proof */}
