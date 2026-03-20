@@ -1,31 +1,72 @@
-import React from 'react';
-import { useUser } from '@clerk/clerk-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Scissors, Type, MicOff, FileText, Sparkles, 
-  VolumeX, Gauge, Image as ImageIcon, Crop, 
-  BookOpen, Download, Layout, Upload, Video 
+  Upload, Video, ChevronRight 
 } from 'lucide-react';
+import { TOOL_BY_KEY, TOOL_ITEMS, DEFAULT_NEW_USER_FEATURE_KEYS } from '../../config/tools';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 const Home = () => {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const navigate = useNavigate();
+  const [recentServices, setRecentServices] = useState([]);
 
-  const tools = [
-    { icon: Scissors, title: "AI Reel Cutter", description: "Turn long videos into shorts" },
-    { icon: Type, title: "Auto Subtitles", description: "Generate captions instantly" },
-    { icon: MicOff, title: "Silence Remover", description: "Remove awkward pauses" },
-    { icon: FileText, title: "AI Video Summary", description: "Quick content summaries" },
-    { icon: Sparkles, title: "Quality Enhancer", description: "Upscale video clarity" },
-    { icon: VolumeX, title: "Noise Reduction", description: "Crystal clear audio" },
-    { icon: Gauge, title: "Speed Controls", description: "Adjust playback speed" },
-    { icon: ImageIcon, title: "Video-to-GIF", description: "Create GIFs instantly" },
-    { icon: Crop, title: "Crop & Resize", description: "Optimize for platforms" },
-    { icon: BookOpen, title: "Chapter Generation", description: "Auto timestamps" },
-    { icon: Download, title: "YouTube Downloader", description: "Save videos for editing" },
-    { icon: Layout, title: "Thumbnail Generator", description: "Create thumbnails" },
-  ];
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchRecentServices = async () => {
+      if (!user?.id) return;
+
+      try {
+        const token = await getToken();
+        const response = await fetch(`${API_BASE_URL}/api/video/user/videos`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            'X-User-Id': user.id,
+            'X-User-Email': user?.emailAddresses?.[0]?.emailAddress || '',
+          },
+        });
+
+        if (!response.ok) return;
+        const data = await response.json();
+        const services = (data?.videos || []).map((item) => item?.service).filter(Boolean);
+        const uniqueRecent = [...new Set(services)].filter((service) => TOOL_BY_KEY[service]);
+
+        if (!ignore) {
+          setRecentServices(uniqueRecent.slice(0, 4));
+        }
+      } catch (_) {
+        if (!ignore) {
+          setRecentServices([]);
+        }
+      }
+    };
+
+    fetchRecentServices();
+    return () => {
+      ignore = true;
+    };
+  }, [getToken, user?.id]);
+
+  const featuredTools = useMemo(() => {
+    if (recentServices.length > 0) {
+      const recentTools = recentServices
+        .map((service) => TOOL_BY_KEY[service])
+        .filter(Boolean);
+
+      const fillerTools = TOOL_ITEMS.filter((tool) => !recentServices.includes(tool.key));
+      return [...recentTools, ...fillerTools].slice(0, 4);
+    }
+
+    return DEFAULT_NEW_USER_FEATURE_KEYS
+      .map((key) => TOOL_BY_KEY[key])
+      .filter(Boolean)
+      .slice(0, 4);
+  }, [recentServices]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -75,11 +116,13 @@ const Home = () => {
           ))}
         </div>
 
-        {/* AI Tools Grid */}
+        {/* Featured Tools */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">AI-Powered Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {tools.map((tool, idx) => {
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            {recentServices.length > 0 ? 'Recently Used Tools' : 'Recommended Tools'}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {featuredTools.map((tool, idx) => {
               const Icon = tool.icon;
               return (
                 <motion.button
@@ -89,23 +132,7 @@ const Home = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.05 }}
                   whileHover={{ y: -5 }}
-                  onClick={() => {
-                    if (tool.title === "Video-to-GIF") {
-                      navigate('/video-to-gif');
-                    } else if (tool.title === "YouTube Downloader") {
-                      navigate('/yt-downloader');
-                    } else if (tool.title === "Auto Subtitles") {
-                      navigate('/ai-subtitle-generator');
-                    } else if (tool.title === "Silence Remover") {
-                      navigate('/remove-silence');
-                    } else if (tool.title === "Crop & Resize") {
-                      navigate('/crop-resize');
-                    } else if (tool.title === "AI Video Summary") {
-                      navigate('/ai-video-summary');
-                    } else if (tool.title === "Noise Reduction") {
-                      navigate('/noise-reduction');
-                    }
-                  }}
+                  onClick={() => navigate(tool.path)}
                   className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-primary hover:shadow-lg transition-all text-left group"
                 >
                   <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center mb-4 group-hover:bg-orange-100 transition-colors">
@@ -116,6 +143,29 @@ const Home = () => {
                 </motion.button>
               );
             })}
+          </div>
+          <div className="mt-6 flex justify-center">
+            <motion.button
+              onClick={() => navigate('/tools')}
+              className="inline-flex items-center justify-center rounded-full border-1 px-8 py-3 font-semibold tracking-wide text-white cursor-pointer shadow-lg"
+              style={{
+                background: 'linear-gradient(120deg, #ff914c 0%, #ffb37b 45%, #ff914c 100%)',
+                backgroundSize: '200% 200%',
+                borderColor: 'orange',
+              }}
+              animate={{
+                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <span className='font-mono'>MORE TOOLS →</span>
+            </motion.button>
           </div>
         </div>
 
@@ -139,7 +189,7 @@ const Home = () => {
                 Upload Video
               </button>
               <button 
-                onClick={() => navigate('/yt-downloader')}
+                onClick={() => navigate('/tools/yt-downloader')}
                 className="btn-outline-primary"
               >
                 Download from YouTube

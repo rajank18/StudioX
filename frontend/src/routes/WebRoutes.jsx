@@ -5,6 +5,7 @@ import WebLayout from '../layout/Web';
 import LandingPage from '../pages/LandingPage';
 import OnBoarding from '../pages/OnBoarding';
 import Home from '../pages/web/Home';
+import Tools from '../pages/web/Tools';
 import YtDownloader from '../pages/web/YtDownloader';
 import Projects from '../pages/web/Projects';
 import RemoveSilence from '../pages/web/RemoveSilence';
@@ -47,16 +48,6 @@ const WebRoutes = () => {
             
           </>
         } />
-        <Route path="/yt-downloader" element={
-          <>
-            <SignedIn>
-              <YtDownloader />
-            </SignedIn>
-            <SignedOut>
-              <Navigate to="/sign-in" replace />
-            </SignedOut>
-          </>
-        } />
         <Route path="/projects" element={
           <>
             <SignedIn>
@@ -67,7 +58,17 @@ const WebRoutes = () => {
             </SignedOut>
           </>
         } />
-        <Route path="/remove-silence" element={
+        <Route path="/tools" element={
+          <>
+            <SignedIn>
+              <Tools />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/tools/remove-silence" element={
           <>
             <SignedIn>
               <RemoveSilence />
@@ -77,7 +78,7 @@ const WebRoutes = () => {
             </SignedOut>
           </>
         } />
-        <Route path="/video-to-gif" element={
+        <Route path="/tools/video-to-gif" element={
           <>
             <SignedIn>
               <VideoToGif />
@@ -87,7 +88,7 @@ const WebRoutes = () => {
             </SignedOut>
           </>
         } />
-        <Route path="/noise-reduction" element={
+        <Route path="/tools/noise-reduction" element={
           <>
             <SignedIn>
               <NoiseReduction />
@@ -97,7 +98,7 @@ const WebRoutes = () => {
             </SignedOut>
           </>
         } />
-        <Route path="/thumbnail-generator" element={
+        <Route path="/tools/thumbnail-generator" element={
           <>
             <SignedIn>
               <ThumbnailGenerator />
@@ -107,7 +108,7 @@ const WebRoutes = () => {
             </SignedOut>
           </>
         } />
-        <Route path="/crop-resize" element={
+        <Route path="/tools/crop-resize" element={
           <>
             <SignedIn>
               <CropResize />
@@ -117,7 +118,7 @@ const WebRoutes = () => {
             </SignedOut>
           </>
         } />
-        <Route path="/ai-video-summary" element={
+        <Route path="/tools/ai-video-summary" element={
           <>
             <SignedIn>
               <AiVideoSummary />
@@ -127,10 +128,28 @@ const WebRoutes = () => {
             </SignedOut>
           </>
         } />
-        <Route path="/ai-subtitle-generator" element={
+        <Route path="/tools/ai-subtitle-generator" element={
           <>
             <SignedIn>
               <AiSubtitleGenerator />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/yt-downloader" element={<Navigate to="/tools/yt-downloader" replace />} />
+        <Route path="/video-to-gif" element={<Navigate to="/tools/video-to-gif" replace />} />
+        <Route path="/noise-reduction" element={<Navigate to="/tools/noise-reduction" replace />} />
+        <Route path="/remove-silence" element={<Navigate to="/tools/remove-silence" replace />} />
+        <Route path="/thumbnail-generator" element={<Navigate to="/tools/thumbnail-generator" replace />} />
+        <Route path="/crop-resize" element={<Navigate to="/tools/crop-resize" replace />} />
+        <Route path="/ai-video-summary" element={<Navigate to="/tools/ai-video-summary" replace />} />
+        <Route path="/ai-subtitle-generator" element={<Navigate to="/tools/ai-subtitle-generator" replace />} />
+        <Route path="/tools/yt-downloader" element={
+          <>
+            <SignedIn>
+              <YtDownloader />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />
