@@ -33,7 +33,12 @@ app.use(clerkAuth);
 app.use(ensureUserExists);
 
 // Serve uploaded/processed files from both uploads and outputs directories
-app.use('/uploads', express.static(path.join(__dirname, 'temp', 'uploads'), {
+const os = require('os');
+const storageBase = process.env.STORAGE_BASE || path.join(os.tmpdir(), 'studiox');
+const uploadsPath = process.env.UPLOAD_DIR || path.join(storageBase, 'uploads');
+const outputsPath = process.env.OUTPUT_DIR || path.join(storageBase, 'outputs');
+
+app.use('/uploads', express.static(uploadsPath, {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.mp4') || filePath.endsWith('.webm') || filePath.endsWith('.mov') || filePath.endsWith('.gif')) {
       res.setHeader('Accept-Ranges', 'bytes');
@@ -49,7 +54,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'temp', 'uploads'), {
 }));
 
 // Serve processed files from outputs directory
-app.use('/uploads', express.static(path.join(__dirname, 'temp', 'outputs'), {
+app.use('/uploads', express.static(outputsPath, {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.mp4') || filePath.endsWith('.webm') || filePath.endsWith('.mov')) {
       res.setHeader('Accept-Ranges', 'bytes');

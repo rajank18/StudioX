@@ -2,15 +2,14 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const os = require('os');
 const { clerkAuth } = require('../middleware/clerkAuth');
 const thumbnailController = require('../controllers/thumbnailController');
 
 // Multer configuration for video uploads
-const uploadsDir = path.join(__dirname, '..', 'temp', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const storageBase = process.env.STORAGE_BASE || path.join(os.tmpdir(), 'studiox');
+const uploadsDir = process.env.UPLOAD_DIR || path.join(storageBase, 'uploads');
+// No explicit folder creation: cloud/storage-managed environment handles this.
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

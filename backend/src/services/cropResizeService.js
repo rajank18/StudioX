@@ -1,4 +1,5 @@
 const path = require('path');
+const os = require('os');
 const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
@@ -8,12 +9,19 @@ const prisma = require('../config/prisma');
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
-const uploadDir = path.join(__dirname, '..', 'temp', 'uploads');
-const outputDir = path.join(__dirname, '..', 'temp', 'outputs');
+const storageBase = process.env.STORAGE_BASE || path.join(os.tmpdir(), 'studiox');
+const uploadDir = process.env.UPLOAD_DIR || path.join(storageBase, 'uploads');
+const outputDir = process.env.OUTPUT_DIR || path.join(storageBase, 'outputs');
 
-[uploadDir, outputDir].forEach((dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-});
+// Ensure output directory exists before ffmpeg writes. (Cloud path can still be created as needed.)
+if (!fs.existsSync(outputDir)) {
+  try {
+    fs.mkdirSync(outputDir, { recursive: true });
+  } catch (e) {
+    console.warn('Failed to create output directory:', outputDir, e.message);
+  }
+}
+
 
 /**
  * Get video metadata: duration (seconds), width, height

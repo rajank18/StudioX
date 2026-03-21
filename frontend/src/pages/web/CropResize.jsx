@@ -1,8 +1,9 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { Upload, Download, Loader, CheckCircle, AlertCircle, Crop, Scissors } from 'lucide-react';
+import { Upload, Download, Loader, CheckCircle, AlertCircle, Crop, Scissors, Link } from 'lucide-react';
 import CropResizeTimeline from '../../components/web/CropResizeTimeline';
 import CropResizeFrame from '../../components/web/CropResizeFrame';
+import FeatureGuide from '../../components/web/FeatureGuide';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
 const API_BASE = 'http://localhost:3000/api/crop-resize';
@@ -24,6 +25,11 @@ export default function CropResize() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const objectUrlRef = useRef(null);
+
+  // YouTube link support
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [isLoadingYt, setIsLoadingYt] = useState(false);
+  const [ytFileMeta, setYtFileMeta] = useState(null);
 
   const onLoadedMetadata = useCallback(() => {
     const v = videoRef.current;
@@ -62,14 +68,78 @@ export default function CropResize() {
     setVideoUrl(url);
   };
 
+  // YouTube helpers
+  const validateYouTubeUrl = (url) => {
+    const patterns = [
+      /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)/,
+      /^https?:\/\/(www\.)?youtube\.com\/embed\//,
+      /^https?:\/\/(www\.)?youtube\.com\/v\//
+    ];
+    return patterns.some(pattern => pattern.test(url));
+  };
+
+  const handleUseLink = async () => {
+    if (!youtubeUrl.trim()) return setError('Please enter a YouTube URL');
+    if (!validateYouTubeUrl(youtubeUrl.trim())) return setError('Please enter a valid YouTube URL');
+
+    setError('');
+    setIsLoadingYt(true);
+    setResultUrl(null);
+    setSuccess(false);
+
+    try {
+      // Fetch info first (optional, but gives us formats)
+      const infoRes = await fetch('http://localhost:3000/api/video/youtube/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: youtubeUrl.trim() }),
+      });
+      const infoData = await infoRes.json();
+      if (!infoRes.ok) throw new Error(infoData.error || 'Failed to fetch video info');
+
+      // Choose highest quality by default (first in array)
+      const quality = (infoData.formats && infoData.formats[0] && infoData.formats[0].quality) || null;
+
+      // Request backend to download the video and return a public URL
+      let token = null;
+      try { token = await getToken(); } catch (e) { token = null; }
+
+      const dlRes = await fetch('http://localhost:3000/api/video/youtube/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': user?.id || '',
+          'X-User-Email': user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || '',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ url: youtubeUrl.trim(), quality }),
+      });
+
+      const dlData = await dlRes.json();
+      if (!dlRes.ok) throw new Error(dlData.error || 'YouTube download failed');
+
+      const file = dlData.file;
+      const fullUrl = `http://localhost:3000${file.url}`;
+
+      // Use downloaded file for preview/cropping
+      setVideoUrl(fullUrl);
+      setFile(null);
+      setYtFileMeta(file);
+    } catch (err) {
+      setError(err.message || 'YouTube download failed');
+    } finally {
+      setIsLoadingYt(false);
+    }
+  };
+
   const handleTrimChange = useCallback(({ startTime: s, endTime: e }) => {
     setStartTime(s);
     setEndTime(e);
   }, []);
 
   const handleProcess = async () => {
-    if (!file || !videoUrl) {
-      setError('Please upload a video first');
+    if (!file && !ytFileMeta) {
+      setError('Please upload a video or provide a YouTube link first');
       return;
     }
     setError('');
@@ -81,7 +151,20 @@ export default function CropResize() {
       try { token = await getToken(); } catch (err) { token = null; }
 
       const form = new FormData();
-      form.append('video', file);
+
+      // Prefer explicit local file; for YouTube we create File from the downloaded blob.
+      if (file) {
+        form.append('video', file);
+      } else if (ytFileMeta && videoUrl) {
+        const response = await fetch(videoUrl);
+        if (!response.ok) throw new Error('Failed to download YouTube video for processing');
+        const blob = await response.blob();
+        const youtubeFile = new File([blob], ytFileMeta.filename || 'youtube-video.mp4', { type: 'video/mp4' });
+        form.append('video', youtubeFile);
+        // Also set file to keep future checks consistent and avoid repeated blob downloads.
+        setFile(youtubeFile);
+      }
+
       form.append('startTime', String(startTime));
       form.append('endTime', String(endTime));
       form.append('cropX', String(Math.max(0, Math.floor(crop.x))));
@@ -99,7 +182,9 @@ export default function CropResize() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || data.details || 'Processing failed');
+        const msg = data.error || data.details || 'Processing failed';
+        console.error('CropResize process API failure', { status: res.status, data });
+        throw new Error(msg);
       }
 
       const fullUrl = `http://localhost:3000${data.url}`;
@@ -107,6 +192,7 @@ export default function CropResize() {
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Processing failed');
+      console.error('CropResize process error', err);
     } finally {
       setIsLoading(false);
     }
@@ -143,6 +229,8 @@ export default function CropResize() {
     setStartTime(0);
     setEndTime(0);
     setCrop({ x: 0, y: 0, width: 0, height: 0 });
+    setYoutubeUrl('');
+    setYtFileMeta(null);
     if (objectUrlRef.current) {
       try { URL.revokeObjectURL(objectUrlRef.current); } catch (err) {}
       objectUrlRef.current = null;
@@ -173,7 +261,6 @@ export default function CropResize() {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">Crop & Resize</h1>
-        <p className="text-gray-600">Upload a video, trim the timeline, and crop the frame. Preview in real time, then process and download.</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
@@ -198,6 +285,30 @@ export default function CropResize() {
                   <p className="text-xs text-gray-500 mt-1">MP4, WebM, MOV • Max 500MB</p>
                 </div>
               </label>
+
+              {/* YouTube link option */}
+              <div className="mt-3">
+                <label htmlFor="youtube-url" className="block text-sm font-medium text-gray-700">Or paste a YouTube link</label>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    id="youtube-url"
+                    type="url"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-colors"
+                    disabled={isLoading || isLoadingYt}
+                  />
+                  <button
+                    onClick={handleUseLink}
+                    disabled={isLoadingYt || !youtubeUrl.trim()}
+                    className="btn-primary px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  >
+                    {isLoadingYt ? <Loader className="w-4 h-4 animate-spin mr-2" /> : <Link className="w-4 h-4 mr-2" />}
+                    <span>Use link</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -261,7 +372,7 @@ export default function CropResize() {
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={handleProcess}
-                    disabled={isLoading || !file}
+                    disabled={isLoading || (!file && !ytFileMeta)}
                     className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {isLoading ? <Loader className="w-5 h-5 animate-spin" /> : <Scissors className="w-5 h-5" />}
@@ -331,17 +442,19 @@ export default function CropResize() {
           )}
         </div>
       </div>
-
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
-        <h3 className="font-semibold text-amber-900 mb-2">How it works</h3>
-        <ul className="space-y-1 text-sm text-amber-800">
-          <li>• Upload a video (MP4, WebM, MOV).</li>
-          <li>• Use the timeline to set start and end time (trim).</li>
-          <li>• Drag the orange crop box to select the area to keep; edges and corners resize.</li>
-          <li>• Use the pixel inputs for precise crop dimensions.</li>
-          <li>• Process to generate your video; credits are deducted. Download when ready.</li>
-        </ul>
-      </div>
-    </div>
+      <FeatureGuide
+        description="Trim and crop any uploaded video to the exact segment and frame area you need. Use this to remove unwanted sections, focus on a subject, or change aspect ratio."
+        steps={[
+          'Upload a video file (MP4/WebM/MOV), up to 500MB, or paste a YouTube link.',
+          'Adjust the start and end times using the trim controls.',
+          'Drag the crop zone and set width/height using the overlay.',
+          'Press Process to convert and then download the result.'
+        ]}
+        tips={[
+          'Use the Reset button to restore full-frame crop quickly.',
+          'Choosing a 16:9 crop for standard players keeps compatibility high.',
+          'For best quality avoid extreme enlarging of small source videos.'
+        ]}
+      />    </div>
   );
 }

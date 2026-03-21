@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
+import FeatureGuide from '../../components/web/FeatureGuide';
 import {
   Type,
   Upload,
@@ -221,7 +222,6 @@ const AiSubtitleGenerator = () => {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">AI Subtitle Generator</h1>
-        <p className="text-gray-600">Paste YouTube link → Upload → Generate Subtitles</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 space-y-6">
@@ -413,6 +413,19 @@ const AiSubtitleGenerator = () => {
           )}
         </div>
       )}
+
+      <FeatureGuide
+        description="Turn video content into accurate subtitles automatically. Works with YouTube URLs and local files."
+        steps={[
+          'Paste a YouTube URL or upload a local video file.',
+          'Fetch video info, then generate subtitles.',
+          'Download SRT and/or processed subtitled video file.'
+        ]}
+        tips={[
+          'Review/edit generated subtitles before downloading.',
+          'Large files may take longer; check progress indicators.'
+        ]}
+      />
     </div>
   );
 };

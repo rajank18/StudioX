@@ -1,12 +1,12 @@
 const { Router } = require('express');
 const path = require('path');
-const fs = require('fs');
+const os = require('os');
 const multer = require('multer');
 const { convert } = require('../controllers/videoToGifController');
 
-// Ensure upload folder exists
-const uploadDir = path.join(__dirname, '..', 'temp', 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const storageBase = process.env.STORAGE_BASE || path.join(os.tmpdir(), 'studiox');
+const uploadDir = process.env.UPLOAD_DIR || path.join(storageBase, 'uploads');
+// No explicit local directory creation to support managed cloud filesystems.
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
 const storage = multer.diskStorage({

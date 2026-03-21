@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Loader, CheckCircle, AlertCircle } from 'lucide-react';
+import FeatureGuide from '../../components/web/FeatureGuide';
 
 const RemoveSilence = () => {
     const { getToken } = useAuth();
@@ -78,7 +79,6 @@ const RemoveSilence = () => {
                     </div>
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900">Remove Silence</h1>
-                <p className="text-gray-600">Upload your audio file and remove awkward pauses automatically</p>
             </div>
 
             {/* Main Card */}
@@ -150,17 +150,18 @@ const RemoveSilence = () => {
                     )}
                 </div>
             </div>
-
-            {/* Info Section */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <h3 className="font-semibold text-blue-900 mb-3">How it works</h3>
-                <ul className="space-y-2 text-sm text-blue-800">
-                    <li>• Upload your audio file (MP3, WAV, or M4A)</li>
-                    <li>• The silence remover will detect and remove silent segments</li>
-                    <li>• Speech and music will remain untouched</li>
-                    <li>• Download your processed audio instantly</li>
-                </ul>
-            </div>
+            <FeatureGuide
+                description="Automatically cut silent sections from recorded audio to make playback more engaging and compact."
+                steps={[
+                    'Upload audio (MP3/WAV/M4A).',
+                    'Click Remove Silence and wait for processing.',
+                    'Download the resulting audio without pauses.',
+                ]}
+                tips={[
+                    'Mute background noise before removing silence for cleaner results.',
+                    'Use this with podcast clips, interviews, or voice memos.'
+                ]}
+            />
         </div>
     );
 };

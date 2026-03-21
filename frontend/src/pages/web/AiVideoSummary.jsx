@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
+import FeatureGuide from '../../components/web/FeatureGuide';
 import {
   FileText,
   Loader,
@@ -245,7 +246,6 @@ const AiVideoSummary = () => {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">AI Video Summary</h1>
-        <p className="text-gray-600">Paste YouTube link → Fetch Video Info → Generate Summary</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 space-y-6">
@@ -428,6 +428,19 @@ const AiVideoSummary = () => {
           </div>
         </div>
       )}
+
+      <FeatureGuide
+        description="Get concise extractive summaries from video audio/text for quick consumption and note-taking."
+        steps={[
+          'Paste a YouTube URL or upload a video file.',
+          'Fetch video info then click Generate Summary.',
+          'Review, edit, copy or download the summary text.'
+        ]}
+        tips={[
+          'Use shorter videos first when trying this feature.',
+          'If audio is noisy, consider pre-processing with Noise Reduction.'
+        ]}
+      />
     </div>
   );
 };

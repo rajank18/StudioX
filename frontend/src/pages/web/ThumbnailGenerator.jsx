@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { Upload, Image, Type, Download, Loader, AlertCircle, Check } from 'lucide-react';
+import FeatureGuide from '../../components/web/FeatureGuide';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -556,6 +557,21 @@ const ThumbnailGenerator = () => {
           </div>
         </motion.div>
       )}
+
+      <FeatureGuide
+        description="Generate a thumbnail image from your video frames and add title/caption text in a few clicks."
+        steps={[
+          'Upload a video (up to 500MB).',
+          'Extract frames and pick your favorite shot.',
+          'Enter headline text and style settings.',
+          'Generate the final thumbnail and download it.'
+        ]}
+        tips={[
+          'Choose high-contrast text color for legibility.',
+          'Keep the message short for better click-through rates.',
+          'Use the default 1280x720 frame for social sharing compatibility.'
+        ]}
+      />
     </div>
   );
 };

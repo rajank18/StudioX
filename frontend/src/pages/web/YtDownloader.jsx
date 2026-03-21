@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Download, Link, Loader, CheckCircle, AlertCircle, Play } from 'lucide-react';
+import FeatureGuide from '../../components/web/FeatureGuide';
 
 const YtDownloader = () => {
   const { getToken } = useAuth();
@@ -159,7 +160,6 @@ const YtDownloader = () => {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">YouTube Downloader</h1>
-        <p className="text-gray-600">Download YouTube videos quickly and easily - completely free!</p>
       </div>
 
       {/* Main Card */}
@@ -313,33 +313,18 @@ const YtDownloader = () => {
           )}
         </div>
       </div>
-
-      {/* Info Cards */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
-          <div className="w-12 h-12 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Download className="w-6 h-6 text-primary" />
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-2">High Quality</h3>
-          <p className="text-sm text-gray-600">Download videos in the best available quality, including HD and 4K formats.</p>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
-          <div className="w-12 h-12 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-3">
-            <CheckCircle className="w-6 h-6 text-primary" />
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-2">100% Free</h3>
-          <p className="text-sm text-gray-600">No credits required, no subscriptions. Download as many videos as you want.</p>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
-          <div className="w-12 h-12 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Link className="w-6 h-6 text-primary" />
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-2">Easy to Use</h3>
-          <p className="text-sm text-gray-600">Just paste the YouTube URL and click download. Simple and straightforward.</p>
-        </div>
-      </div>
+      <FeatureGuide
+        description="Fetch video metadata and download YouTube videos in available formats with one click."
+        steps={[
+          'Paste a valid YouTube URL.',
+          'Fetch video info and choose quality.',
+          'Click Download and save the file locally.'
+        ]}
+        tips={[
+          'Use the highest resolution only if you need it (larger filesize).',
+          'For faster downloads, choose lower bitrate or resolution.'
+        ]}
+      />
     </div>
   );
 };

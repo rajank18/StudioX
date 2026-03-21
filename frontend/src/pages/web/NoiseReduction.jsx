@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Download, Loader, CheckCircle, AlertCircle, Volume2, Mic, Sliders } from 'lucide-react';
+import FeatureGuide from '../../components/web/FeatureGuide';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
 
@@ -198,7 +199,6 @@ const NoiseReduction = () => {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">AI Noise Reduction</h1>
-        <p className="text-gray-600">Remove background noise and enhance voice clarity using advanced audio processing</p>
       </div>
 
       {/* Main Card */}
@@ -483,37 +483,20 @@ const NoiseReduction = () => {
           )}
         </div>
       </div>
-
-      {/* Info Section */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <h3 className="font-semibold text-blue-900 mb-3">Advanced Audio Processing</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
-          <div>
-            <h4 className="font-medium mb-2">What it does:</h4>
-            <ul className="space-y-1">
-              <li>• Removes background noise (traffic, crowd, wind)</li>
-              <li>• Enhances human voice clarity</li>
-              <li>• Reduces echo and reverb</li>
-              <li>• Eliminates hiss and static</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Best for:</h4>
-            <ul className="space-y-1">
-              <li>• Street vlogs and outdoor content</li>
-              <li>• Interviews in noisy environments</li>
-              <li>• Podcast recordings</li>
-              <li>• Professional presentations</li>
-            </ul>
-          </div>
-        </div>
-        <div className="mt-4 p-3 bg-blue-100 rounded-lg">
-          <p className="text-xs text-blue-900">
-            <strong>Pro Tip:</strong> Start with a preset for quick results, then use custom settings for fine-tuning.
-            The "Aggressive" preset works best for very noisy environments like busy streets.
-          </p>
-        </div>
-      </div>
+      <FeatureGuide
+        description="Clean up noisy recordings with AI-powered audio processing. Ideal for vlogs, interviews, and unusable audio tracks."
+        steps={[
+          'Upload a video file (up to 500MB).',
+          'Choose preset or custom mode.',
+          'Adjust noise reduction and voice enhancement levels.',
+          'Click Process and download the cleaned result.'
+        ]}
+        tips={[
+          'Start with the Balanced preset for general cases.',
+          'Use Speech Focus for dialogue-heavy content.',
+          'Preview the output after processing to ensure quality.'
+        ]}
+      />
     </div>
   );
 };

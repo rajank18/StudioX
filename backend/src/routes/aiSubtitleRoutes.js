@@ -1,16 +1,15 @@
 const { Router } = require('express');
 const path = require('path');
-const fs = require('fs');
+const os = require('os');
 const multer = require('multer');
 const { clerkAuth, ensureUserExists } = require('../middleware/clerkAuth');
 const aiSubtitleController = require('../controllers/aiSubtitleController');
 
 const router = Router();
 
-const uploadsDir = path.join(__dirname, '..', 'temp', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-	fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const storageBase = process.env.STORAGE_BASE || path.join(os.tmpdir(), 'studiox');
+const uploadsDir = process.env.UPLOAD_DIR || path.join(storageBase, 'uploads');
+// Managed cloud storage path; do not auto-create to avoid permission/host volume issues.
 
 const upload = multer({
 	storage: multer.diskStorage({

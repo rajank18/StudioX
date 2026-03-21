@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Download, Loader, ArrowLeft, CheckCircle, AlertCircle, Link } from 'lucide-react';
+import FeatureGuide from '../../components/web/FeatureGuide';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB, match backend
 
@@ -385,11 +386,7 @@ const VideoToGif = () => {
     return () => { cancelled = true; };
   }, [videoUrl, videoDuration, containerWidth]);
 
-  // Pointer dragging handlers (declarative handlers only)
-  // Use pointer capture on the selection element and fall back to touch handlers for environments
-  // that don't provide stable PointerEvent support. No manual window addEventListener calls here.
-
-  const rafRef = useRef(null);
+    const rafRef = useRef(null);
   const pendingLeftRef = useRef(null);
   const pendingDurationRef = useRef(null);
   const activePointerIdRef = useRef(null);
@@ -723,7 +720,6 @@ const VideoToGif = () => {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">Video to GIF</h1>
-        <p className="text-gray-600">Upload a video and convert any segment into a smooth GIF.</p>
       </div>
 
       {/* Main Card */}
@@ -1065,17 +1061,20 @@ const VideoToGif = () => {
           )}
         </div>
       </div>
-
-      {/* Info Section */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <h3 className="font-semibold text-blue-900 mb-3">How it works</h3>
-        <ul className="space-y-2 text-sm text-blue-800">
-          <li>• Upload a video file (MP4, WebM, MOV)</li>
-          <li>• Choose the segment by resizing and moving the selection box</li>
-          <li>• GIF is generated on the server using FFmpeg at 10 FPS</li>
-          <li>• GIFs are available for a short time for download</li>
-        </ul>
-      </div>
+      <FeatureGuide
+        description="Convert any portion of video into an animated GIF. Fine-tune start, duration, frame rate, and width for best performance."
+        steps={[
+          'Upload a video or provide a YouTube URL.',
+          'Choose a start time and gif duration.',
+          'Set frame rate and width.',
+          'Process and download the generated GIF.'
+        ]}
+        tips={[
+          'Lower frame rates drastically reduce file size.',
+          'Use short durations (2-5 seconds) for fast loading.',
+          'For looping preview, set duration to the desired repeat segment.'
+        ]}
+      />
     </div>
   );
 };
