@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/web/Navbar';
 import Footer from '../components/web/Footer';
-
+import Silk from '../components/Silk';
 // Animation variants
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -103,9 +103,24 @@ const LandingPage = () => {
       {/* Hero Section */}
       <Navbar/>
       <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-gradient-to-b from-[#fff8e8] to-gray-800">
-        {/* Subtle Pattern Background */}
-        <div className="absolute inset-0 opacity-80">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+        {/* React Bits Silk Background */}
+        <div className="absolute inset-0 opacity-80 pointer-events-none">
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              position: 'relative',
+            }}
+          >
+            <Silk
+              speed={10}
+              scale={0.9}
+              color="#1e2939"
+              noiseIntensity={0.9}
+              rotation={0}
+              fps={24}
+            />
+          </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
@@ -133,16 +148,11 @@ const LandingPage = () => {
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button 
                 onClick={() => navigate('/sign-up')}
-                className="group relative w-full sm:w-auto px-8 py-4 rounded-lg bg-gray-900 text-white font-semibold text-base overflow-hidden shadow-lg hover:shadow-xl hover:bg-gray-800 cursor-pointer transition-all duration-300"
+                className="group relative w-full sm:w-auto px-8 py-4 rounded-lg bg-[#fff8e8]  font-semibold text-gray-600 overflow-hidden shadow-lg hover:shadow-xl hover:bg-gray-900 hover:border-2 hover:border-[#fff8e8] hover:text-[#fff8e8] cursor-pointer transition-all duration-300 "
               >
                 Start for Free
               </button>
-              <button 
-                onClick={() => navigate('/sign-in')}
-                className="relative w-full sm:w-auto px-8 py-4 rounded-lg bg-white border-2 cursor-pointer border-gray-300 text-gray-700 font-semibold text-base hover:bg-gray-50 hover:border-gray-400 transition-all duration-300"
-              >
-                Get a Demo
-              </button>
+              
             </motion.div>
 
             {/* Social Proof */}

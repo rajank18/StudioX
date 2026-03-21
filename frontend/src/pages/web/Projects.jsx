@@ -38,6 +38,9 @@ const Projects = () => {
       // }
 
       const data = await response.json();
+      const source = data?.source || (data?.cached ? 'redis' : 'db');
+      const latency = typeof data?.latencyMs === 'number' ? `${data.latencyMs}ms` : 'n/a';
+      console.log(`[Projects] data source: ${source} | latency: ${latency}`);
       setVideos(data.videos || []);
       setError(''); // Clear error on success
     } catch (err) {
@@ -362,13 +365,13 @@ const Projects = () => {
             <p className="text-gray-600 mb-6">Start using our tools to see your activity here</p>
             <div className="flex justify-center space-x-3">
               <button 
-                onClick={() => window.location.href = '/yt-downloader'}
+                onClick={() => window.location.href = '/tools/yt-downloader'}
                 className="btn-primary"
               >
                 Download Video
               </button>
               <button 
-                onClick={() => window.location.href = '/noise-reduction'}
+                onClick={() => window.location.href = '/tools/noise-reduction'}
                 className="btn-secondary"
               >
                 Process Audio

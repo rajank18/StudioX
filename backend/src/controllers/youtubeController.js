@@ -1,5 +1,36 @@
 const { downloadVideo, getUserVideos, deleteUserVideo, deleteAllUserVideos, getVideoInfo } = require('../services/youtubeService');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { getJsonCache, setJsonCache, deleteCache } = require('../config/redis');
+
+const PROJECTS_CACHE_TTL_SECONDS = parseInt(process.env.PROJECTS_CACHE_TTL_SECONDS || '60', 10);
+const PROJECTS_LOCAL_CACHE_TTL_SECONDS = parseInt(process.env.PROJECTS_LOCAL_CACHE_TTL_SECONDS || '15', 10);
+const getProjectsCacheKey = (userId) => `projects:user:${userId}`;
+const localProjectsCache = new Map();
+
+const getLocalProjectsCache = (key) => {
+  const cached = localProjectsCache.get(key);
+  if (!cached) return null;
+
+  if (Date.now() > cached.expiresAt) {
+    localProjectsCache.delete(key);
+    return null;
+  }
+
+  return cached.value;
+};
+
+const setLocalProjectsCache = (key, value) => {
+  localProjectsCache.set(key, {
+    value,
+    expiresAt: Date.now() + PROJECTS_LOCAL_CACHE_TTL_SECONDS * 1000,
+  });
+};
+
+const clearProjectsCache = async (userId) => {
+  const key = getProjectsCacheKey(userId);
+  localProjectsCache.delete(key);
+  await deleteCache(key);
+};
 
 // POST /api/video/youtube/download
 const downloadYoutubeVideo = asyncHandler(async (req, res) => {
@@ -36,6 +67,7 @@ const downloadYoutubeVideo = asyncHandler(async (req, res) => {
 
 
   const result = await downloadVideo(url, userId, { quality, format });
+  await clearProjectsCache(userId);
   return res.status(200).json({
     message: 'Download complete',
     file: {
@@ -53,14 +85,29 @@ const downloadYoutubeVideo = asyncHandler(async (req, res) => {
 
 // GET /api/video/user/videos
 const getUserVideoList = asyncHandler(async (req, res) => {
+  const startedAt = Date.now();
   const userId = req.auth?.userId || req.headers['x-user-id'];
   
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
+  const cacheKey = getProjectsCacheKey(userId);
+  const localCachedVideos = getLocalProjectsCache(cacheKey);
+  if (localCachedVideos) {
+    return res.status(200).json({ videos: localCachedVideos, cached: true, source: 'memory', latencyMs: Date.now() - startedAt });
+  }
+
+  const cachedVideos = await getJsonCache(cacheKey);
+  if (cachedVideos) {
+    setLocalProjectsCache(cacheKey, cachedVideos);
+    return res.status(200).json({ videos: cachedVideos, cached: true, source: 'redis', latencyMs: Date.now() - startedAt });
+  }
+
   const videos = await getUserVideos(userId);
-  return res.status(200).json({ videos });
+  setLocalProjectsCache(cacheKey, videos);
+  await setJsonCache(cacheKey, videos, PROJECTS_CACHE_TTL_SECONDS);
+  return res.status(200).json({ videos, cached: false, source: 'db', latencyMs: Date.now() - startedAt });
 });
 
 // DELETE /api/video/user/videos/:id
@@ -73,6 +120,7 @@ const deleteUserVideoById = asyncHandler(async (req, res) => {
   }
 
   await deleteUserVideo(userId, id);
+  await clearProjectsCache(userId);
   return res.status(200).json({ message: 'Video deleted successfully' });
 });
 
@@ -97,6 +145,7 @@ const deleteAllUserVideosHandler = asyncHandler(async (req, res) => {
   }
 
   const deletedCount = await deleteAllUserVideos(userId);
+  await clearProjectsCache(userId);
   return res.status(200).json({ 
     message: 'All items deleted successfully',
     deletedCount 

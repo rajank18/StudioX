@@ -14,21 +14,22 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const menuItems = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Your Projects', path: '/projects', icon: FolderOpen },
+    { name: 'Tools', path: '/tools', icon: Wrench },
   ];
 
   const aiTools = [
-    { name: 'AI Subtitle Generator', path: '/ai-subtitle-generator' },
-    { name: 'AI Video Summary', path: '/ai-video-summary' },
+    { name: 'AI Subtitle Generator', path: '/tools/ai-subtitle-generator' },
+    { name: 'AI Video Summary', path: '/tools/ai-video-summary' },
     { name: 'AI Enhancement', path: '/tools/ai-enhance' },
     { name: 'AI Upscale', path: '/tools/ai-upscale' },
   ];
 
   const basicTools = [
-    { name: 'YouTube Downloader', path: '/yt-downloader' },
-    { name: 'Video to GIF', path: '/video-to-gif' },
-    { name: 'Noise Reduction', path: '/noise-reduction' },
-    { name: 'Remove Silence', path: '/remove-silence' },
-    { name: 'Thumbnail Generator', path: '/thumbnail-generator' },
+    { name: 'YouTube Downloader', path: '/tools/yt-downloader' },
+    { name: 'Video to GIF', path: '/tools/video-to-gif' },
+    { name: 'Noise Reduction', path: '/tools/noise-reduction' },
+    { name: 'Remove Silence', path: '/tools/remove-silence' },
+    { name: 'Thumbnail Generator', path: '/tools/thumbnail-generator' },
   ];
 
   return (
