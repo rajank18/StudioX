@@ -34,7 +34,7 @@ const MODE_OPTIONS = [
 	},
 ];
 
-const VideoEnhancement = () => {
+const VideoEnhancer = () => {
 	const { getToken } = useAuth();
 	const { user } = useUser();
 	const [videoFile, setVideoFile] = useState(null);
@@ -289,4 +289,4 @@ const VideoEnhancement = () => {
 	);
 };
 
-export default VideoEnhancement;
+export default VideoEnhancer;
