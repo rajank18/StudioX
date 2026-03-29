@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Download, Loader, ArrowLeft, CheckCircle, AlertCircle, Link } from 'lucide-react';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB, match backend
 
@@ -764,7 +765,7 @@ const VideoToGif = () => {
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
                     placeholder="https://www.youtube.com/watch?v=..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary text-gray-700 focus:border-primary outline-none transition-colors"
                     disabled={isLoading || isLoadingYt}
                   />
                   <button
@@ -820,11 +821,11 @@ const VideoToGif = () => {
                           </div>
                         ))
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200" />
+                        <div className="w-full h-full bg-linear-to-r from-gray-200 via-gray-100 to-gray-200" />
                       )}
                     </div>
                   ) : (
-                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200" />
+                    <div className="absolute inset-0 w-full h-full bg-linear-to-r from-gray-200 via-gray-100 to-gray-200" />
                   )}
 
                   {/* Dim overlays (left & right unselected areas) */}
@@ -1037,7 +1038,7 @@ const VideoToGif = () => {
           {/* Error Message */}
           {error && (
             <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h3 className="font-medium text-red-900">Error</h3>
                 <p className="text-sm text-red-700">{error}</p>
@@ -1048,7 +1049,7 @@ const VideoToGif = () => {
           {/* Success Message */}
           {success && resultUrl && (
             <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h3 className="font-medium text-green-900">Conversion Complete!</h3>
                 <p className="text-sm text-green-700">Your GIF is ready. Preview below or download it.</p>
@@ -1066,16 +1067,7 @@ const VideoToGif = () => {
         </div>
       </div>
 
-      {/* Info Section */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <h3 className="font-semibold text-blue-900 mb-3">How it works</h3>
-        <ul className="space-y-2 text-sm text-blue-800">
-          <li>• Upload a video file (MP4, WebM, MOV)</li>
-          <li>• Choose the segment by resizing and moving the selection box</li>
-          <li>• GIF is generated on the server using FFmpeg at 10 FPS</li>
-          <li>• GIFs are available for a short time for download</li>
-        </ul>
-      </div>
+      <ToolInfoFaqSection toolKey="video-to-gif" />
     </div>
   );
 };

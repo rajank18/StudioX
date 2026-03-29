@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Download, Loader, CheckCircle, AlertCircle, Volume2, Mic, Sliders } from 'lucide-react';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
 
@@ -189,7 +190,7 @@ const NoiseReduction = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="flex justify-center mb-4">
@@ -427,7 +428,7 @@ const NoiseReduction = () => {
           {/* Error Message */}
           {error && (
             <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h3 className="font-medium text-red-900">Error</h3>
                 <p className="text-sm text-red-700">{error}</p>
@@ -438,7 +439,7 @@ const NoiseReduction = () => {
           {/* Success Message */}
           {success && resultUrl && (
             <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h3 className="font-medium text-green-900">Processing Complete!</h3>
                 <p className="text-sm text-green-700">Your video with clean audio is ready. Compare below or download it.</p>
@@ -484,36 +485,7 @@ const NoiseReduction = () => {
         </div>
       </div>
 
-      {/* Info Section */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <h3 className="font-semibold text-blue-900 mb-3">Advanced Audio Processing</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
-          <div>
-            <h4 className="font-medium mb-2">What it does:</h4>
-            <ul className="space-y-1">
-              <li>• Removes background noise (traffic, crowd, wind)</li>
-              <li>• Enhances human voice clarity</li>
-              <li>• Reduces echo and reverb</li>
-              <li>• Eliminates hiss and static</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Best for:</h4>
-            <ul className="space-y-1">
-              <li>• Street vlogs and outdoor content</li>
-              <li>• Interviews in noisy environments</li>
-              <li>• Podcast recordings</li>
-              <li>• Professional presentations</li>
-            </ul>
-          </div>
-        </div>
-        <div className="mt-4 p-3 bg-blue-100 rounded-lg">
-          <p className="text-xs text-blue-900">
-            <strong>Pro Tip:</strong> Start with a preset for quick results, then use custom settings for fine-tuning.
-            The "Aggressive" preset works best for very noisy environments like busy streets.
-          </p>
-        </div>
-      </div>
+      <ToolInfoFaqSection toolKey="noise-reduction" />
     </div>
   );
 };

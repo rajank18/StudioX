@@ -7,6 +7,7 @@ import {
   Crop,
   FileText,
   Type,
+  Sparkles,
 } from 'lucide-react';
 
 export const TOOL_ITEMS = [
@@ -25,6 +26,14 @@ export const TOOL_ITEMS = [
     path: '/tools/ai-video-summary',
     category: 'ai',
     icon: FileText,
+  },
+  {
+    key: 'video-enhancer',
+    title: 'Video Enhancer',
+    description: 'Denoise, upscale, and polish video',
+    path: '/tools/video-enhancer',
+    category: 'ai',
+    icon: Sparkles,
   },
   {
     key: 'youtube',

@@ -3,6 +3,7 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Download, Loader, CheckCircle, AlertCircle, Crop, Scissors } from 'lucide-react';
 import CropResizeTimeline from '../../components/web/CropResizeTimeline';
 import CropResizeFrame from '../../components/web/CropResizeFrame';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
 const API_BASE = 'http://localhost:3000/api/crop-resize';
@@ -332,16 +333,7 @@ export default function CropResize() {
         </div>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
-        <h3 className="font-semibold text-amber-900 mb-2">How it works</h3>
-        <ul className="space-y-1 text-sm text-amber-800">
-          <li>• Upload a video (MP4, WebM, MOV).</li>
-          <li>• Use the timeline to set start and end time (trim).</li>
-          <li>• Drag the orange crop box to select the area to keep; edges and corners resize.</li>
-          <li>• Use the pixel inputs for precise crop dimensions.</li>
-          <li>• Process to generate your video; credits are deducted. Download when ready.</li>
-        </ul>
-      </div>
+      <ToolInfoFaqSection toolKey="crop-resize" />
     </div>
   );
 }

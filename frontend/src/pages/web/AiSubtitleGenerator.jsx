@@ -12,6 +12,7 @@ import {
   FileText,
   Video,
 } from 'lucide-react';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -413,6 +414,8 @@ const AiSubtitleGenerator = () => {
           )}
         </div>
       )}
+
+      <ToolInfoFaqSection toolKey="ai-subtitle-generator" />
     </div>
   );
 };

@@ -88,7 +88,7 @@ const Home = () => {
   }, [recentServices]);
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-[#12161f]' : 'bg-white'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Welcome Section */}
         <div className="mb-5">
@@ -104,8 +104,8 @@ const Home = () => {
         >
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <h2 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-[#fff8e8]' : 'text-white'}`}>Start Creating</h2>
-              <p className={isDarkMode ? 'text-[#b7bdc8]' : 'text-orange-100'}>Upload your video and let AI do the magic</p>
+              <h2 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-gray-200' : 'text-white'}`}>Start Creating</h2>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-orange-100'}>Upload your video and let AI do the magic</p>
             </div>
             <button className={`flex items-center gap-3 ${isDarkMode ? 'px-5 py-2.5 rounded-lg bg-[#2a3344] text-[#fff8e8] border border-[#3a4559] hover:bg-[#313c50]' : 'btn-outline-primary'}`}>
               <Upload className="w-5 h-5" />
@@ -117,10 +117,10 @@ const Home = () => {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           {[
-            { label: 'Videos Processed', value: '0', color: 'text-[#ad6007]' },
-            { label: 'Total Duration', value: '0m', color: 'text-[#ad6007]' },
-            { label: 'Credits Left', value: '10,000', color: 'text-[#ad6007]' },
-            { label: 'Projects', value: '0', color: 'text-[#ad6007]' }
+            { label: 'Videos Processed', value: '0', color: 'text-gray-200' },
+            { label: 'Total Duration', value: '0m', color: 'textgray-200' },
+            { label: 'Credits Left', value: '10,000', color: 'text-gray-200' },
+            { label: 'Projects', value: '0', color: 'text-gray-200' }
           ].map((stat, idx) => (
             <motion.div
               key={idx}
@@ -129,7 +129,7 @@ const Home = () => {
               transition={{ delay: idx * 0.1 }}
               className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#181f2a_100%)] border border-[#2b3445] hover:border-[#ff914c]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)]' : 'bg-white border border-gray-200 hover:border-primary'} rounded-2xl p-6 transition-colors`}
             >
-              <p className={`${isDarkMode ? 'text-[#a9b2c2]' : 'text-gray-600'} text-sm mb-1`}>{stat.label}</p>
+              <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-sm mb-1`}>{stat.label}</p>
               <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
             </motion.div>
           ))}
@@ -157,8 +157,8 @@ const Home = () => {
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${isDarkMode ? 'bg-[#252f40] group-hover:bg-[#2f3a4f]' : 'bg-orange-50 group-hover:bg-orange-100'}`}>
                     <Icon className="w-6 h-6 text-[#ad6007]" />
                   </div>
-                  <h3 className={`font-semibold mb-1 ${isDarkMode ? 'text-[#fff8e8]' : 'text-gray-900'}`}>{tool.title}</h3>
-                  <p className={`text-sm ${isDarkMode ? 'text-[#a9b2c2]' : 'text-gray-600'}`}>{tool.description}</p>
+                  <h3 className={`font-semibold mb-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>{tool.title}</h3>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{tool.description}</p>
                 </motion.button>
               );
             })}
@@ -201,8 +201,8 @@ const Home = () => {
           </div>
           <div className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)]' : 'bg-white border border-gray-200'} rounded-2xl p-12 text-center`}>
             <Video className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-[#46536d]' : 'text-gray-300'}`} />
-            <h3 className={`text-xl font-semibold mb-2 ${isDarkMode ? 'text-[#fff8e8]' : 'text-gray-900'}`}>No projects yet</h3>
-            <p className={`mb-6 ${isDarkMode ? 'text-[#a9b2c2]' : 'text-gray-600'}`}>Upload your first video or download from YouTube to get started</p>
+            <h3 className={`text-xl font-semibold mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>No projects yet</h3>
+            <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Upload your first video or download from YouTube to get started</p>
             <div className="flex gap-3 justify-center">
               <button className="btn-primary">
                 Upload Video

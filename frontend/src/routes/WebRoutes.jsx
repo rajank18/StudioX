@@ -15,6 +15,7 @@ import ThumbnailGenerator from '../pages/web/ThumbnailGenerator';
 import CropResize from '../pages/web/CropResize';
 import AiVideoSummary from '../pages/web/AiVideoSummary';
 import AiSubtitleGenerator from '../pages/web/AiSubtitleGenerator';
+import VideoEnhancement from '../pages/web/VideoEnhancement';
 
 const WebRoutes = () => {
   return (
@@ -138,6 +139,18 @@ const WebRoutes = () => {
             </SignedOut>
           </>
         } />
+        <Route path="/tools/video-enhancer" element={
+          <>
+            <SignedIn>
+              <VideoEnhancement />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/tools/ai-enhance" element={<Navigate to="/tools/video-enhancer" replace />} />
+        <Route path="/tools/ai-upscale" element={<Navigate to="/tools/video-enhancer" replace />} />
         <Route path="/yt-downloader" element={<Navigate to="/tools/yt-downloader" replace />} />
         <Route path="/video-to-gif" element={<Navigate to="/tools/video-to-gif" replace />} />
         <Route path="/noise-reduction" element={<Navigate to="/tools/noise-reduction" replace />} />
@@ -146,6 +159,9 @@ const WebRoutes = () => {
         <Route path="/crop-resize" element={<Navigate to="/tools/crop-resize" replace />} />
         <Route path="/ai-video-summary" element={<Navigate to="/tools/ai-video-summary" replace />} />
         <Route path="/ai-subtitle-generator" element={<Navigate to="/tools/ai-subtitle-generator" replace />} />
+        <Route path="/video-enhancer" element={<Navigate to="/tools/video-enhancer" replace />} />
+        <Route path="/ai-enhance" element={<Navigate to="/tools/video-enhancer" replace />} />
+        <Route path="/ai-upscale" element={<Navigate to="/tools/video-enhancer" replace />} />
         <Route path="/tools/yt-downloader" element={
           <>
             <SignedIn>
