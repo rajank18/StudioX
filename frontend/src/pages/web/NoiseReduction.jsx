@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Download, Loader, CheckCircle, AlertCircle, Volume2, Mic, Sliders } from 'lucide-react';
-import FeatureGuide from '../../components/web/FeatureGuide';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
 
@@ -190,7 +190,7 @@ const NoiseReduction = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="flex justify-center mb-4">
@@ -427,7 +427,7 @@ const NoiseReduction = () => {
           {/* Error Message */}
           {error && (
             <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h3 className="font-medium text-red-900">Error</h3>
                 <p className="text-sm text-red-700">{error}</p>
@@ -438,7 +438,7 @@ const NoiseReduction = () => {
           {/* Success Message */}
           {success && resultUrl && (
             <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h3 className="font-medium text-green-900">Processing Complete!</h3>
                 <p className="text-sm text-green-700">Your video with clean audio is ready. Compare below or download it.</p>
@@ -483,20 +483,8 @@ const NoiseReduction = () => {
           )}
         </div>
       </div>
-      <FeatureGuide
-        description="Clean up noisy recordings with AI-powered audio processing. Ideal for vlogs, interviews, and unusable audio tracks."
-        steps={[
-          'Upload a video file (up to 500MB).',
-          'Choose preset or custom mode.',
-          'Adjust noise reduction and voice enhancement levels.',
-          'Click Process and download the cleaned result.'
-        ]}
-        tips={[
-          'Start with the Balanced preset for general cases.',
-          'Use Speech Focus for dialogue-heavy content.',
-          'Preview the output after processing to ensure quality.'
-        ]}
-      />
+
+      <ToolInfoFaqSection toolKey="noise-reduction" />
     </div>
   );
 };

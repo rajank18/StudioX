@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { Upload, Image, Type, Download, Loader, AlertCircle, Check } from 'lucide-react';
-import FeatureGuide from '../../components/web/FeatureGuide';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -165,7 +165,7 @@ const ThumbnailGenerator = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="flex justify-center mb-4">
@@ -193,8 +193,7 @@ const ThumbnailGenerator = () => {
 
       {/* Upload Section */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        
         className="bg-white rounded-xl shadow-lg border border-gray-200 p-8"
       >
         <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-900">
@@ -558,20 +557,7 @@ const ThumbnailGenerator = () => {
         </motion.div>
       )}
 
-      <FeatureGuide
-        description="Generate a thumbnail image from your video frames and add title/caption text in a few clicks."
-        steps={[
-          'Upload a video (up to 500MB).',
-          'Extract frames and pick your favorite shot.',
-          'Enter headline text and style settings.',
-          'Generate the final thumbnail and download it.'
-        ]}
-        tips={[
-          'Choose high-contrast text color for legibility.',
-          'Keep the message short for better click-through rates.',
-          'Use the default 1280x720 frame for social sharing compatibility.'
-        ]}
-      />
+      <ToolInfoFaqSection toolKey="thumbnail-generator" />
     </div>
   );
 };

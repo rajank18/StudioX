@@ -12,7 +12,7 @@ const prisma = require('../config/prisma');
 const TEMP_DIR = path.join(__dirname, '..', 'temp', 'ai-summary');
 const OUTPUT_DIR = path.join(__dirname, '..', 'temp', 'outputs');
 const YT_DLP_PATH = 'yt-dlp';
-const OPENROUTER_MODEL = 'openrouter/hunter-alpha';
+const OPENROUTER_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free';
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
@@ -217,7 +217,7 @@ async function downloadYoutubeAudio(url, sessionDir) {
       noPart: true,
       noWarnings: true,
       preferFreeFormats: true,
-      ffmpegLocation: path.dirname(ffmpegPath),
+      ffmpegLocation: ffmpegPath, // Pass full path to ffmpeg binary
       extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
       extractorRetries: 3,
       output: outputTemplate,

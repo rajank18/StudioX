@@ -17,6 +17,7 @@ const thumbnailRoutes = require('./routes/thumbnailRoutes');
 const cropResizeRoutes = require('./routes/cropResizeRoutes');
 const aiVideoSummaryRoutes = require('./routes/aiVideoSummaryRoutes');
 const aiSubtitleRoutes = require('./routes/aiSubtitleRoutes');
+const videoEnhancementRoutes = require('./routes/videoEnhancementRoutes');
 
 const app = express();
 
@@ -109,6 +110,8 @@ app.use('/api/video/to-gif', videoToGifRoutes);
 app.use('/api/noise-reduction', noiseReductionRoutes);
 // Crop & Resize feature routes
 app.use('/api/crop-resize', cropResizeRoutes);
+// Video enhancement feature routes
+app.use('/api/video-enhancement', videoEnhancementRoutes);
 app.use('/api', silenceRemoverRoutes);
 // Thumbnail generator routes
 app.use('/api/thumbnail', thumbnailRoutes);

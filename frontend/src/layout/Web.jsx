@@ -7,8 +7,27 @@ import Footer from '../components/web/Footer';
 
 const WebLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem('studiox-theme') === 'dark';
+    } catch (_) {
+      return false;
+    }
+  });
   const { getToken } = useAuth();
   const { user } = useUser();
+
+  useEffect(() => {
+    const onThemeUpdated = (event) => {
+      const nextTheme = event?.detail?.theme;
+      if (nextTheme === 'dark' || nextTheme === 'light') {
+        setIsDarkMode(nextTheme === 'dark');
+      }
+    };
+
+    window.addEventListener('studiox-theme-change', onThemeUpdated);
+    return () => window.removeEventListener('studiox-theme-change', onThemeUpdated);
+  }, []);
 
   // Bootstrap: ensure the signed-in user exists in backend DB
   useEffect(() => {
@@ -38,7 +57,7 @@ const WebLayout = () => {
   }, [getToken, user?.id]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className={`flex min-h-screen ${isDarkMode ? 'web-theme-dark bg-black' : 'bg-gray-50'}`}>
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <div className={`flex-1 flex flex-col ${isSidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
         <main className="flex-1 overflow-y-auto">

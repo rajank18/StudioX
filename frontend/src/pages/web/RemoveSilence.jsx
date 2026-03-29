@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Loader, CheckCircle, AlertCircle } from 'lucide-react';
-import FeatureGuide from '../../components/web/FeatureGuide';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const RemoveSilence = () => {
     const { getToken } = useAuth();
@@ -130,7 +130,7 @@ const RemoveSilence = () => {
                     {/* Error Message */}
                     {error && (
                         <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <h3 className="font-medium text-red-900">Error</h3>
                                 <p className="text-sm text-red-700">{error}</p>
@@ -141,7 +141,7 @@ const RemoveSilence = () => {
                     {/* Success Message */}
                     {success && (
                         <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <h3 className="font-medium text-green-900">Success!</h3>
                                 <p className="text-sm text-green-700">Your audio file has been processed and downloaded</p>
@@ -150,18 +150,8 @@ const RemoveSilence = () => {
                     )}
                 </div>
             </div>
-            <FeatureGuide
-                description="Automatically cut silent sections from recorded audio to make playback more engaging and compact."
-                steps={[
-                    'Upload audio (MP3/WAV/M4A).',
-                    'Click Remove Silence and wait for processing.',
-                    'Download the resulting audio without pauses.',
-                ]}
-                tips={[
-                    'Mute background noise before removing silence for cleaner results.',
-                    'Use this with podcast clips, interviews, or voice memos.'
-                ]}
-            />
+
+            <ToolInfoFaqSection toolKey="remove-silence" />
         </div>
     );
 };

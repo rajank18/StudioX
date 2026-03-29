@@ -13,6 +13,7 @@ import {
   Clock3,
   Tv,
 } from 'lucide-react';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -429,18 +430,7 @@ const AiVideoSummary = () => {
         </div>
       )}
 
-      <FeatureGuide
-        description="Get concise extractive summaries from video audio/text for quick consumption and note-taking."
-        steps={[
-          'Paste a YouTube URL or upload a video file.',
-          'Fetch video info then click Generate Summary.',
-          'Review, edit, copy or download the summary text.'
-        ]}
-        tips={[
-          'Use shorter videos first when trying this feature.',
-          'If audio is noisy, consider pre-processing with Noise Reduction.'
-        ]}
-      />
+      <ToolInfoFaqSection toolKey="ai-video-summary" />
     </div>
   );
 };

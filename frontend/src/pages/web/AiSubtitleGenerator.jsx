@@ -13,6 +13,7 @@ import {
   FileText,
   Video,
 } from 'lucide-react';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -414,18 +415,7 @@ const AiSubtitleGenerator = () => {
         </div>
       )}
 
-      <FeatureGuide
-        description="Turn video content into accurate subtitles automatically. Works with YouTube URLs and local files."
-        steps={[
-          'Paste a YouTube URL or upload a local video file.',
-          'Fetch video info, then generate subtitles.',
-          'Download SRT and/or processed subtitled video file.'
-        ]}
-        tips={[
-          'Review/edit generated subtitles before downloading.',
-          'Large files may take longer; check progress indicators.'
-        ]}
-      />
+      <ToolInfoFaqSection toolKey="ai-subtitle-generator" />
     </div>
   );
 };

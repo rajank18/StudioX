@@ -3,7 +3,7 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Download, Loader, CheckCircle, AlertCircle, Crop, Scissors, Link } from 'lucide-react';
 import CropResizeTimeline from '../../components/web/CropResizeTimeline';
 import CropResizeFrame from '../../components/web/CropResizeFrame';
-import FeatureGuide from '../../components/web/FeatureGuide';
+import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
 const API_BASE = 'http://localhost:3000/api/crop-resize';
@@ -442,19 +442,8 @@ export default function CropResize() {
           )}
         </div>
       </div>
-      <FeatureGuide
-        description="Trim and crop any uploaded video to the exact segment and frame area you need. Use this to remove unwanted sections, focus on a subject, or change aspect ratio."
-        steps={[
-          'Upload a video file (MP4/WebM/MOV), up to 500MB, or paste a YouTube link.',
-          'Adjust the start and end times using the trim controls.',
-          'Drag the crop zone and set width/height using the overlay.',
-          'Press Process to convert and then download the result.'
-        ]}
-        tips={[
-          'Use the Reset button to restore full-frame crop quickly.',
-          'Choosing a 16:9 crop for standard players keeps compatibility high.',
-          'For best quality avoid extreme enlarging of small source videos.'
-        ]}
-      />    </div>
+
+      <ToolInfoFaqSection toolKey="crop-resize" />
+    </div>
   );
 }
