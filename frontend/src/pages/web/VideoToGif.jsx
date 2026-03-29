@@ -740,7 +740,7 @@ const VideoToGif = () => {
                 />
                 <label
                   htmlFor="video-file"
-                  className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary-50 transition-colors"
+                  className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-gray-100 transition-colors"
                 >
                   <div className="text-center">
                     <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />

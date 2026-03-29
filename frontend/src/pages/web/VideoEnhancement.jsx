@@ -163,7 +163,7 @@ const VideoEnhancement = () => {
 					<label htmlFor="enhance-video" className="block text-sm font-medium text-gray-700">Input Video</label>
 					<label
 						htmlFor="enhance-video"
-						className="flex items-center justify-center w-full px-4 py-10 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary-50 transition-colors"
+						className="flex items-center justify-center w-full px-4 py-10 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-gray-100 transition-colors"
 					>
 						<input
 							id="enhance-video"

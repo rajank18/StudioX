@@ -219,7 +219,7 @@ const NoiseReduction = () => {
                 />
                 <label
                   htmlFor="video-file"
-                  className="flex items-center justify-center w-full px-4 py-12 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary-50 transition-colors"
+                  className="flex items-center justify-center w-full px-4 py-12 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-gray-100 transition-colors"
                 >
                   <div className="text-center">
                     <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
