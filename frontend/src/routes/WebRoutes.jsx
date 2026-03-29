@@ -15,7 +15,7 @@ import ThumbnailGenerator from '../pages/web/ThumbnailGenerator';
 import CropResize from '../pages/web/CropResize';
 import AiVideoSummary from '../pages/web/AiVideoSummary';
 import AiSubtitleGenerator from '../pages/web/AiSubtitleGenerator';
-import VideoEnhancement from '../pages/web/VideoEnhancement';
+import VideoEnhancer from '../pages/web/VideoEnhancer'
 
 const WebRoutes = () => {
   return (
@@ -142,7 +142,7 @@ const WebRoutes = () => {
         <Route path="/tools/video-enhancer" element={
           <>
             <SignedIn>
-              <VideoEnhancement />
+              <VideoEnhancer/>
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />
@@ -160,7 +160,6 @@ const WebRoutes = () => {
         <Route path="/ai-video-summary" element={<Navigate to="/tools/ai-video-summary" replace />} />
         <Route path="/ai-subtitle-generator" element={<Navigate to="/tools/ai-subtitle-generator" replace />} />
         <Route path="/video-enhancer" element={<Navigate to="/tools/video-enhancer" replace />} />
-        <Route path="/ai-enhance" element={<Navigate to="/tools/video-enhancer" replace />} />
         <Route path="/ai-upscale" element={<Navigate to="/tools/video-enhancer" replace />} />
         <Route path="/tools/yt-downloader" element={
           <>
