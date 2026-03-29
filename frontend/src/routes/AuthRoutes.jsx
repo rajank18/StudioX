@@ -27,6 +27,7 @@ const AuthRoutes = () => {
           </SignedIn>
         </>
       } />
+      <Route path="*" element={null} />
     </Routes>
   );
 };
