@@ -172,6 +172,7 @@ const WebRoutes = () => {
           </>
         } />
       </Route>
+      <Route path="*" element={null} />
     </Routes>
   );
 };
