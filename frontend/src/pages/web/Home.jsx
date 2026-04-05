@@ -117,10 +117,10 @@ const Home = () => {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           {[
-            { label: 'Videos Processed', value: '0', color: 'text-gray-200' },
-            { label: 'Total Duration', value: '0m', color: 'textgray-200' },
-            { label: 'Credits Left', value: '10,000', color: 'text-gray-200' },
-            { label: 'Projects', value: '0', color: 'text-gray-200' }
+            { label: 'Videos Processed', value: '0', color: 'text-primary' },
+            { label: 'Total Duration', value: '0m', color: 'text-primary' },
+            { label: 'Credits Left', value: '10,000', color: 'text-primary' },
+            { label: 'Projects', value: '0', color: 'text-primary' }
           ].map((stat, idx) => (
             <motion.div
               key={idx}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Download, Trash2, Play, Calendar, HardDrive, 
   Video, FileText, AlertCircle, Loader, Volume2, 
@@ -10,14 +11,34 @@ import {
 const Projects = () => {
   const { user } = useUser();
   const { getToken } = useAuth();
+  const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem('studiox-theme') === 'dark';
+    } catch (_) {
+      return false;
+    }
+  });
 
   useEffect(() => {
     fetchUserVideos();
+  }, []);
+
+  useEffect(() => {
+    const onThemeUpdated = (event) => {
+      const nextTheme = event?.detail?.theme;
+      if (nextTheme === 'dark' || nextTheme === 'light') {
+        setIsDarkMode(nextTheme === 'dark');
+      }
+    };
+
+    window.addEventListener('studiox-theme-change', onThemeUpdated);
+    return () => window.removeEventListener('studiox-theme-change', onThemeUpdated);
   }, []);
 
   const fetchUserVideos = async () => {
@@ -157,12 +178,16 @@ const Projects = () => {
         return <VolumeX className="w-4 h-4" />;
       case 'video-to-gif':
         return <Image className="w-4 h-4" />;
+      case 'video-compressor':
+        return <Film className="w-4 h-4" />;
       case 'crop-resize':
         return <Video className="w-4 h-4" />;
       case 'ai-subtitle-generator':
         return <FileText className="w-4 h-4" />;
       case 'ai-video-summary':
         return <FileText className="w-4 h-4" />;
+      case 'reel-cutter':
+        return <Film className="w-4 h-4" />;
       default:
         return <Film className="w-4 h-4" />;
     }
@@ -178,12 +203,16 @@ const Projects = () => {
         return 'Silence Remover';
       case 'video-to-gif':
         return 'Video to GIF';
+      case 'video-compressor':
+        return 'Video Compressor';
       case 'crop-resize':
         return 'Crop & Resize';
       case 'ai-subtitle-generator':
         return 'AI Subtitle Generator';
       case 'ai-video-summary':
         return 'AI Video Summary';
+      case 'reel-cutter':
+        return 'AI Reel Cutter';
       default:
         return 'Video Processing';
     }
@@ -191,24 +220,24 @@ const Projects = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
         <div className="max-w-7xl mx-auto px-6 py-10">
           {/* Header Skeleton */}
           <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Projects</h1>
-            <p className="text-gray-600">Manage all your videos and processing activities</p>
+            <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>My Projects</h1>
+            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Manage all your videos and processing activities</p>
           </div> </div>
 
           {/* Stats Cards Skeleton */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
+              <div key={i} className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445]' : 'bg-white border border-gray-200'} rounded-lg p-6`}>
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                  <div className={`w-10 h-10 rounded-lg animate-pulse ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
                   <div className="flex-1">
-                    <div className="h-3 w-16 bg-gray-200 rounded animate-pulse mb-2"></div>
-                    <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
+                    <div className={`h-3 w-16 rounded animate-pulse mb-2 ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
+                    <div className={`h-6 w-12 rounded animate-pulse ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
                   </div>
                 </div>
               </div>
@@ -218,23 +247,23 @@ const Projects = () => {
           {/* Video Cards Skeleton */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div key={i} className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445]' : 'bg-white border border-gray-200'} rounded-xl overflow-hidden`}>
                 {/* Thumbnail skeleton with shimmer */}
-                <div className="aspect-video bg-gray-200 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                <div className={`aspect-video relative overflow-hidden ${isDarkMode ? 'bg-[#1a2230]' : 'bg-gray-200'}`}>
+                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
                 </div>
                 {/* Content skeleton */}
                 <div className="p-6">
-                  <div className="h-5 bg-gray-200 rounded animate-pulse mb-2"></div>
-                  <div className="h-5 w-3/4 bg-gray-200 rounded animate-pulse mb-4"></div>
+                  <div className={`h-5 rounded animate-pulse mb-2 ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
+                  <div className={`h-5 w-3/4 rounded animate-pulse mb-4 ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
                   <div className="space-y-2 mb-4">
-                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
+                    <div className={`h-4 w-20 rounded animate-pulse ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
+                    <div className={`h-4 w-32 rounded animate-pulse ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
+                    <div className={`h-4 w-28 rounded animate-pulse ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
                   </div>
                   <div className="flex space-x-2">
-                    <div className="flex-1 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
-                    <div className="w-12 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                    <div className={`flex-1 h-10 rounded-lg animate-pulse ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
+                    <div className={`w-12 h-10 rounded-lg animate-pulse ${isDarkMode ? 'bg-[#2b3445]' : 'bg-gray-200'}`}></div>
                   </div>
                 </div>
               </div>
@@ -246,13 +275,13 @@ const Projects = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Header */}
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Projects</h1>
-            <p className="text-gray-600">Manage all your videos and processing activities</p>
+            <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-[#fff8e8]' : 'text-gray-900'}`}>My Projects</h1>
+            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Manage all your videos and processing activities</p>
           </div>
           {videos.length > 0 && (
             <button
@@ -273,7 +302,7 @@ const Projects = () => {
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
             <div>
               <h4 className="text-sm font-medium text-red-800">Error</h4>
               <p className="text-sm text-red-600 mt-1">{error}</p>
@@ -286,15 +315,15 @@ const Projects = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-lg border border-gray-200 p-6 hover:border-primary transition-colors"
+            className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] hover:border-[#ff914c]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)]' : 'bg-white border border-gray-200 hover:border-primary'} rounded-lg p-6 transition-colors`}
           >
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
                 <Video className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Videos</p>
-                <p className="text-2xl font-bold text-gray-900">{videos.length}</p>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Videos</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>{videos.length}</p>
               </div>
             </div>
           </motion.div>
@@ -303,15 +332,15 @@ const Projects = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-lg border border-gray-200 p-6 hover:border-primary transition-colors"
+            className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] hover:border-[#ff914c]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)]' : 'bg-white border border-gray-200 hover:border-primary'} rounded-lg p-6 transition-colors`}
           >
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
                 <HardDrive className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Size</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Size</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                   {formatFileSize(videos.reduce((acc, v) => acc + v.fileSize, 0))}
                 </p>
               </div>
@@ -322,15 +351,15 @@ const Projects = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-lg border border-gray-200 p-6 hover:border-primary transition-colors"
+            className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] hover:border-[#ff914c]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)]' : 'bg-white border border-gray-200 hover:border-primary'} rounded-lg p-6 transition-colors`}
           >
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
                 <Download className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Processed</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Processed</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                   {videos.filter(v => v.service !== 'youtube').length}
                 </p>
               </div>
@@ -341,15 +370,15 @@ const Projects = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white rounded-lg border border-gray-200 p-6 hover:border-primary transition-colors"
+            className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] hover:border-[#ff914c]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)]' : 'bg-white border border-gray-200 hover:border-primary'} rounded-lg p-6 transition-colors`}
           >
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">This Month</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>This Month</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                   {videos.filter(v => new Date(v.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length}
                 </p>
               </div>
@@ -359,19 +388,19 @@ const Projects = () => {
 
         {/* Videos Grid */}
         {videos.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-            <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No projects yet</h3>
-            <p className="text-gray-600 mb-6">Start using our tools to see your activity here</p>
+          <div className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)]' : 'bg-white border border-gray-200'} rounded-2xl p-12 text-center`}>
+            <Video className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-[#46536d]' : 'text-gray-300'}`} />
+            <h3 className={`text-xl font-semibold mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>No projects yet</h3>
+            <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Start using our tools to see your activity here</p>
             <div className="flex justify-center space-x-3">
               <button 
-                onClick={() => window.location.href = '/tools/yt-downloader'}
+                onClick={() => navigate('/tools/yt-downloader')}
                 className="btn-primary"
               >
                 Download Video
               </button>
               <button 
-                onClick={() => window.location.href = '/tools/noise-reduction'}
+                onClick={() => navigate('/tools/noise-reduction')}
                 className="btn-secondary"
               >
                 Process Audio
@@ -386,10 +415,10 @@ const Projects = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group"
+                className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] hover:border-[#ff914c]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_18px_30px_rgba(0,0,0,0.34)]' : 'bg-white border border-gray-200 hover:shadow-lg'} rounded-xl overflow-hidden transition-shadow group`}
               >
                 {/* Thumbnail */}
-                <div className="aspect-video bg-gray-100 relative overflow-hidden">
+                <div className={`aspect-video relative overflow-hidden ${isDarkMode ? 'bg-[#1a2230]' : 'bg-gray-100'}`}>
                   {video.thumbnail ? (
                     <img 
                       src={video.thumbnail} 
@@ -401,8 +430,8 @@ const Projects = () => {
                       }}
                     />
                   ) : null}
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100" style={{ display: video.thumbnail ? 'none' : 'flex' }}>
-                    <Video className="w-12 h-12 text-gray-400" />
+                  <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-[#1a2230]' : 'bg-gray-100'}`} style={{ display: video.thumbnail ? 'none' : 'flex' }}>
+                    <Video className={`w-12 h-12 ${isDarkMode ? 'text-[#46536d]' : 'text-gray-400'}`} />
                   </div>
                   
                   {/* Play overlay */}
@@ -420,20 +449,20 @@ const Projects = () => {
 
                 {/* Content */}
                 <div className="p-6">
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2" title={video.title}>
+                  <h3 className={`font-semibold mb-2 line-clamp-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`} title={video.title}>
                     {video.title}
                   </h3>
                   
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className={`flex items-center space-x-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       <HardDrive className="w-4 h-4" />
                       <span>{formatFileSize(video.fileSize)}</span>
                     </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className={`flex items-center space-x-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       {getServiceIcon(video.service)}
                       <span>{getServiceLabel(video.service)}</span>
                     </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className={`flex items-center space-x-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       <Calendar className="w-4 h-4" />
                       <span>{formatDate(video.createdAt)}</span>
                     </div>

@@ -162,6 +162,42 @@ const CONTENT_BY_TOOL = {
       { q: 'Why does high-quality encoding take longer?', a: 'More compute is needed for denoise, upscale, and quality-preserving encode steps.' },
       { q: 'Can I process 4K input?', a: 'Support depends on backend limits and available server resources.' }
     ]
+  },
+  'ai-reel-cutter': {
+    infoTitle: 'How it works',
+    infoPoints: [
+      'Choose exactly one source: YouTube URL or uploaded video file.',
+      'Configure reel count, duration range, resolution, and caption settings.',
+      'The backend generates a job id and validates upstream service health.',
+      'Progress events are streamed in real-time with stage labels.',
+      'When complete, all generated reels are packaged as a ZIP.',
+      'Download the ZIP directly from the result panel or access it later from Projects.'
+    ],
+    faq: [
+      { q: 'Can I provide both YouTube URL and file?', a: 'No. Exactly one input source is required for each job.' },
+      { q: 'What happens if progress streaming disconnects?', a: 'The app automatically reconnects and falls back to status polling if needed.' },
+      { q: 'How many reels can I generate in one run?', a: 'You can set reel count in advanced options; default is 5.' },
+      { q: 'Why did I get a validation error?', a: 'Common causes are invalid input combinations or min_duration greater than max_duration.' },
+      { q: 'What format do I download?', a: 'Outputs are bundled into a ZIP file for convenient download.' }
+    ]
+  },
+  'video-compressor': {
+    infoTitle: 'How it works',
+    infoPoints: [
+      'Upload a video and run pre-analysis to detect resolution, bitrate, and duration.',
+      'Choose your target compression percentage based on the size reduction you need.',
+      'A quality-first strategy is selected automatically from your target reduction.',
+      'FFmpeg encodes with tuned bitrate, CRF, and profile settings for visual quality retention.',
+      'Live progress updates show each compression job until output is ready.',
+      'Preview the optimized output and download it with saved size percentage details.'
+    ],
+    faq: [
+      { q: 'Will quality always stay exactly the same?', a: 'Compression is visually optimized to preserve quality, but tiny differences can still occur depending on source content.' },
+      { q: 'What compression range can I use?', a: 'The slider supports 30% to 90% reduction targets, with 70% as the default.' },
+      { q: 'Why does saved size differ from target percent?', a: 'Actual output depends on motion complexity, original codec efficiency, and audio/video bitrate balance.' },
+      { q: 'Can I compress very large videos?', a: 'Yes, within upload limits and available server processing resources.' },
+      { q: 'Where can I find compressed videos later?', a: 'Compressed outputs are saved to your Projects page for preview and download.' }
+    ]
   }
 };
 

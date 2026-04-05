@@ -103,6 +103,13 @@ const addTextOverlay = asyncHandler(async (req, res) => {
 
     console.log(`[Thumbnail] Adding text overlay: "${text}"`);
 
+    const parsedX = xPosition === null || xPosition === undefined || xPosition === ''
+      ? null
+      : parseInt(xPosition, 10);
+    const parsedY = yPosition === null || yPosition === undefined || yPosition === ''
+      ? null
+      : parseInt(yPosition, 10);
+
     const result = await addTextToFrame(framePath, text, {
       fontSize: parseInt(fontSize) || 48,
       fontColor: fontColor || 'white',
@@ -111,8 +118,8 @@ const addTextOverlay = asyncHandler(async (req, res) => {
       showBackground: showBackground !== undefined ? showBackground : true,
       backgroundColor: backgroundColor || 'black',
       backgroundOpacity: parseFloat(backgroundOpacity) || 0.7,
-      xPosition: xPosition !== undefined ? parseInt(xPosition) : null,
-      yPosition: yPosition !== undefined ? parseInt(yPosition) : null,
+      xPosition: Number.isFinite(parsedX) ? parsedX : null,
+      yPosition: Number.isFinite(parsedY) ? parsedY : null,
     });
 
     return res.status(200).json({
