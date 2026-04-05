@@ -8,6 +8,8 @@ import {
   FileText,
   Type,
   Sparkles,
+  Minimize2,
+  Scissors,
 } from 'lucide-react';
 
 export const TOOL_ITEMS = [
@@ -26,6 +28,14 @@ export const TOOL_ITEMS = [
     path: '/tools/ai-video-summary',
     category: 'ai',
     icon: FileText,
+  },
+  {
+    key: 'reel-cutter',
+    title: 'AI Reel Cutter',
+    description: 'Create short reels from long videos',
+    path: '/tools/ai-reel-cutter',
+    category: 'ai',
+    icon: Scissors,
   },
   {
     key: 'video-enhancer',
@@ -50,6 +60,14 @@ export const TOOL_ITEMS = [
     path: '/tools/video-to-gif',
     category: 'basic',
     icon: ImageIcon,
+  },
+  {
+    key: 'video-compressor',
+    title: 'Video Compressor',
+    description: 'Reduce video size with quality-first tuning',
+    path: '/tools/video-compressor',
+    category: 'basic',
+    icon: Minimize2,
   },
   {
     key: 'noise-reduction',
