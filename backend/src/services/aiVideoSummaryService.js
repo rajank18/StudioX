@@ -89,6 +89,17 @@ function mapYoutubeAccessError(error, actionLabel = 'process this YouTube video'
     );
   }
 
+  const unavailableFormat =
+    normalized.includes('requested format is not available') ||
+    normalized.includes('format is not available');
+
+  if (unavailableFormat) {
+    return new AppError(
+      422,
+      `YouTube did not provide a compatible stream while trying to ${actionLabel}. Try another video or upload the video file directly.`
+    );
+  }
+
   return error;
 }
 
@@ -273,7 +284,7 @@ async function getYoutubeMetadata(url) {
   } catch (error) {
     const mappedError = mapYoutubeAccessError(error, 'fetch video metadata');
 
-    if (mappedError instanceof AppError && mappedError.statusCode === 503) {
+    if (mappedError instanceof AppError) {
       try {
         const fallback = await fetchYoutubeOembedMetadata(url);
         logger.warn('Using oEmbed fallback for YouTube metadata', { reason: mappedError.message });
