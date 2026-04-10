@@ -10,6 +10,7 @@ const { AssemblyAI } = require('assemblyai');
 const logger = require('../utils/logger');
 const prisma = require('../config/prisma');
 const { AppError } = require('../middleware/errorHandler');
+const { getYtDlpAuthOptions } = require('../utils/youtubeAuth');
 
 const TEMP_DIR = path.join(__dirname, '..', 'temp', 'ai-summary');
 const OUTPUT_DIR = path.join(__dirname, '..', 'temp', 'outputs');
@@ -205,6 +206,7 @@ async function downloadYoutubeTranscript(url, sessionDir) {
     await ytDlp(
       url,
       {
+        ...getYtDlpAuthOptions(),
         skipDownload: true,
         writeAutoSubs: true,
         writeSubs: true,
@@ -258,6 +260,7 @@ async function getYoutubeMetadata(url) {
     videoInfo = await ytDlp(
       url,
       {
+        ...getYtDlpAuthOptions(),
         dumpJson: true,
         skipDownload: true,
         quiet: true,
@@ -300,6 +303,7 @@ async function downloadYoutubeAudio(url, sessionDir) {
     await ytDlp(
       url,
       {
+        ...getYtDlpAuthOptions(),
         extractAudio: true,
         audioFormat: 'mp3',
         audioQuality: 0,

@@ -4,6 +4,7 @@ const { spawnSync } = require('child_process');
 const logger = require('../utils/logger');
 const ytDlp = require('yt-dlp-exec');
 const prisma = require('../config/prisma');
+const { getYtDlpAuthOptions } = require('../utils/youtubeAuth');
 
 const UPLOADS_DIR = path.join(__dirname, '..', 'temp', 'uploads');
 
@@ -29,6 +30,7 @@ function ensureUploadsDir() {
 async function getVideoInfo(url) {
   try {
     const videoInfo = await ytDlp(url, {
+      ...getYtDlpAuthOptions(),
       dumpJson: true,
       quiet: true,
     }, { ytDlpPath: YT_DLP_PATH });
@@ -135,6 +137,7 @@ async function downloadVideo(url, userId, options = {}) {
 
     // Get video info first for title and duration - skip ads
     const videoInfo = await ytDlp(url, {
+      ...getYtDlpAuthOptions(),
       dumpJson: true,
       skipDownload: true,
       noCallHome: true,
@@ -147,6 +150,7 @@ async function downloadVideo(url, userId, options = {}) {
     const thumbnail = videoInfo.thumbnail || null;
 
     await ytDlp(url, {
+      ...getYtDlpAuthOptions(),
       ...dlOptions,
       restrictFilenames: true,
       noPlaylist: true,

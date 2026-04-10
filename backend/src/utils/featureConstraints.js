@@ -2,6 +2,7 @@ const ytDlp = require('yt-dlp-exec');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const ffprobePath = require('ffprobe-static').path;
+const { getYtDlpAuthOptions } = require('./youtubeAuth');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
@@ -83,6 +84,7 @@ async function getYoutubeDurationSeconds(url) {
   const info = await ytDlp(
     url,
     {
+      ...getYtDlpAuthOptions(),
       dumpJson: true,
       skipDownload: true,
       quiet: true,

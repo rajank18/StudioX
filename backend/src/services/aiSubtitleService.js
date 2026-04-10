@@ -9,6 +9,7 @@ const { AssemblyAI } = require('assemblyai');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
 const { AppError } = require('../middleware/errorHandler');
+const { getYtDlpAuthOptions } = require('../utils/youtubeAuth');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
@@ -194,6 +195,7 @@ async function getYoutubeVideoInfo(url) {
     videoInfo = await ytDlp(
       url,
       {
+        ...getYtDlpAuthOptions(),
         dumpJson: true,
         skipDownload: true,
         quiet: true,
@@ -264,6 +266,7 @@ async function downloadSourceVideo(url, sessionDir) {
     await ytDlp(
       url,
       {
+        ...getYtDlpAuthOptions(),
         format: 'bestvideo+bestaudio/best',
         mergeOutputFormat: 'mp4',
         noPlaylist: true,
