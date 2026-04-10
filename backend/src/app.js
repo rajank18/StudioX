@@ -26,6 +26,27 @@ const app = express();
 
 const DEFAULT_LOCAL_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
+const parseAllowedOrigins = (origins) => {
+  const exactOrigins = [];
+  const wildcardSuffixes = [];
+
+  origins.forEach((origin) => {
+    if (origin.includes('*')) {
+      if (origin.startsWith('https://*.')) {
+        wildcardSuffixes.push(`.${origin.replace('https://*.', '')}`);
+      }
+      return;
+    }
+
+    exactOrigins.push(origin);
+  });
+
+  return {
+    exactOrigins: Array.from(new Set(exactOrigins)),
+    wildcardSuffixes: Array.from(new Set(wildcardSuffixes)),
+  };
+};
+
 const getAllowedOrigins = () => {
   const rawOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
     .filter(Boolean)
@@ -38,10 +59,10 @@ const getAllowedOrigins = () => {
 
   const localOrigins = process.env.NODE_ENV === 'production' ? [] : DEFAULT_LOCAL_ORIGINS;
 
-  return Array.from(new Set([...configuredOrigins, ...localOrigins]));
+  return parseAllowedOrigins([...configuredOrigins, ...localOrigins]);
 };
 
-const allowedOrigins = getAllowedOrigins();
+const { exactOrigins, wildcardSuffixes } = getAllowedOrigins();
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -52,7 +73,15 @@ app.use(cors({
 
     const normalizedOrigin = origin.trim().replace(/\/+$/, '');
 
-    if (allowedOrigins.includes(normalizedOrigin)) {
+    if (exactOrigins.includes(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    const isWildcardMatch = wildcardSuffixes.some((suffix) => {
+      return normalizedOrigin.startsWith('https://') && normalizedOrigin.endsWith(suffix);
+    });
+
+    if (isWildcardMatch) {
       return callback(null, true);
     }
 

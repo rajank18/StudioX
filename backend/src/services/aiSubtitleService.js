@@ -7,6 +7,7 @@ const ytDlp = require('yt-dlp-exec');
 const { AssemblyAI } = require('assemblyai');
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
+const { AppError } = require('../middleware/errorHandler');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
@@ -18,6 +19,26 @@ const OUTPUT_DIR = path.join(__dirname, '..', 'temp', 'outputs');
 function ensureDirs() {
   if (!fs.existsSync(WORK_DIR)) fs.mkdirSync(WORK_DIR, { recursive: true });
   if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+}
+
+function mapYoutubeAccessError(error, actionLabel = 'process this YouTube video') {
+  const message = String(error?.message || 'Unknown YouTube extraction error');
+  const normalized = message.toLowerCase();
+
+  const blockedByYoutube =
+    normalized.includes('sign in to confirm') ||
+    normalized.includes('not a bot') ||
+    normalized.includes('--cookies-from-browser') ||
+    normalized.includes('--cookies for the authentication');
+
+  if (blockedByYoutube) {
+    return new AppError(
+      503,
+      `YouTube temporarily blocked server access while trying to ${actionLabel}. Try another public video, retry later, or upload the video file directly.`
+    );
+  }
+
+  return error;
 }
 
 function getAssemblyAiClient() {
@@ -123,18 +144,23 @@ function escapePathForSubtitlesFilter(filePath) {
 }
 
 async function getYoutubeVideoInfo(url) {
-  const videoInfo = await ytDlp(
-    url,
-    {
-      dumpJson: true,
-      skipDownload: true,
-      quiet: true,
-      noWarnings: true,
-      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
-      extractorRetries: 3,
-    },
-    { ytDlpPath: YT_DLP_PATH }
-  );
+  let videoInfo;
+  try {
+    videoInfo = await ytDlp(
+      url,
+      {
+        dumpJson: true,
+        skipDownload: true,
+        quiet: true,
+        noWarnings: true,
+        extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+        extractorRetries: 3,
+      },
+      { ytDlpPath: YT_DLP_PATH }
+    );
+  } catch (error) {
+    throw mapYoutubeAccessError(error, 'fetch video metadata');
+  }
 
   return {
     title: videoInfo.title || 'Untitled video',
@@ -177,22 +203,26 @@ async function getLocalVideoInfo(videoPath, originalFilename = '') {
 async function downloadSourceVideo(url, sessionDir) {
   const outputTemplate = path.join(sessionDir, 'source.%(ext)s');
 
-  await ytDlp(
-    url,
-    {
-      format: 'bestvideo+bestaudio/best',
-      mergeOutputFormat: 'mp4',
-      noPlaylist: true,
-      noPart: true,
-      quiet: true,
-      noWarnings: true,
-      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
-      extractorRetries: 3,
-      ffmpegLocation: path.dirname(ffmpegPath),
-      output: outputTemplate,
-    },
-    { ytDlpPath: YT_DLP_PATH }
-  );
+  try {
+    await ytDlp(
+      url,
+      {
+        format: 'bestvideo+bestaudio/best',
+        mergeOutputFormat: 'mp4',
+        noPlaylist: true,
+        noPart: true,
+        quiet: true,
+        noWarnings: true,
+        extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+        extractorRetries: 3,
+        ffmpegLocation: path.dirname(ffmpegPath),
+        output: outputTemplate,
+      },
+      { ytDlpPath: YT_DLP_PATH }
+    );
+  } catch (error) {
+    throw mapYoutubeAccessError(error, 'download source video');
+  }
 
   return pickDownloadedVideoFile(sessionDir);
 }

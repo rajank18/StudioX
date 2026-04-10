@@ -8,6 +8,7 @@ const OpenAI = require('openai');
 const { AssemblyAI } = require('assemblyai');
 const logger = require('../utils/logger');
 const prisma = require('../config/prisma');
+const { AppError } = require('../middleware/errorHandler');
 
 const TEMP_DIR = path.join(__dirname, '..', 'temp', 'ai-summary');
 const OUTPUT_DIR = path.join(__dirname, '..', 'temp', 'outputs');
@@ -67,6 +68,26 @@ function cleanupDirSafe(dirPath) {
   } catch (error) {
     logger.warn('Failed to cleanup AI summary temp directory', { dirPath, error: error.message });
   }
+}
+
+function mapYoutubeAccessError(error, actionLabel = 'process this YouTube video') {
+  const message = String(error?.message || 'Unknown YouTube extraction error');
+  const normalized = message.toLowerCase();
+
+  const blockedByYoutube =
+    normalized.includes('sign in to confirm') ||
+    normalized.includes('not a bot') ||
+    normalized.includes('--cookies-from-browser') ||
+    normalized.includes('--cookies for the authentication');
+
+  if (blockedByYoutube) {
+    return new AppError(
+      503,
+      `YouTube temporarily blocked server access while trying to ${actionLabel}. Try another public video, retry later, or upload the video file directly.`
+    );
+  }
+
+  return error;
 }
 
 function formatDurationFromSeconds(seconds) {
@@ -135,23 +156,27 @@ function normalizeTranscriptText(rawText) {
 async function downloadYoutubeTranscript(url, sessionDir) {
   const outputTemplate = path.join(sessionDir, 'captions.%(ext)s');
 
-  await ytDlp(
-    url,
-    {
-      skipDownload: true,
-      writeAutoSubs: true,
-      writeSubs: true,
-      subLangs: 'en.*,en',
-      subFormat: 'vtt/srt/best',
-      noPlaylist: true,
-      noWarnings: true,
-      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
-      extractorRetries: 3,
-      output: outputTemplate,
-      quiet: true,
-    },
-    { ytDlpPath: YT_DLP_PATH }
-  );
+  try {
+    await ytDlp(
+      url,
+      {
+        skipDownload: true,
+        writeAutoSubs: true,
+        writeSubs: true,
+        subLangs: 'en.*,en',
+        subFormat: 'vtt/srt/best',
+        noPlaylist: true,
+        noWarnings: true,
+        extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+        extractorRetries: 3,
+        output: outputTemplate,
+        quiet: true,
+      },
+      { ytDlpPath: YT_DLP_PATH }
+    );
+  } catch (error) {
+    throw mapYoutubeAccessError(error, 'download captions');
+  }
 
   const subtitleFiles = fs
     .readdirSync(sessionDir)
@@ -183,18 +208,23 @@ async function downloadYoutubeTranscript(url, sessionDir) {
 }
 
 async function getYoutubeMetadata(url) {
-  const videoInfo = await ytDlp(
-    url,
-    {
-      dumpJson: true,
-      skipDownload: true,
-      quiet: true,
-      noWarnings: true,
-      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
-      extractorRetries: 3,
-    },
-    { ytDlpPath: YT_DLP_PATH }
-  );
+  let videoInfo;
+  try {
+    videoInfo = await ytDlp(
+      url,
+      {
+        dumpJson: true,
+        skipDownload: true,
+        quiet: true,
+        noWarnings: true,
+        extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+        extractorRetries: 3,
+      },
+      { ytDlpPath: YT_DLP_PATH }
+    );
+  } catch (error) {
+    throw mapYoutubeAccessError(error, 'fetch video metadata');
+  }
 
   return {
     title: videoInfo.title || 'Untitled video',
@@ -209,24 +239,28 @@ async function downloadYoutubeAudio(url, sessionDir) {
   const ffmpegPath = require('ffmpeg-static');
   const outputTemplate = path.join(sessionDir, 'audio.%(ext)s');
 
-  await ytDlp(
-    url,
-    {
-      extractAudio: true,
-      audioFormat: 'mp3',
-      audioQuality: 0,
-      noPlaylist: true,
-      noPart: true,
-      noWarnings: true,
-      preferFreeFormats: true,
-      ffmpegLocation: ffmpegPath, // Pass full path to ffmpeg binary
-      extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
-      extractorRetries: 3,
-      output: outputTemplate,
-      quiet: true,
-    },
-    { ytDlpPath: YT_DLP_PATH }
-  );
+  try {
+    await ytDlp(
+      url,
+      {
+        extractAudio: true,
+        audioFormat: 'mp3',
+        audioQuality: 0,
+        noPlaylist: true,
+        noPart: true,
+        noWarnings: true,
+        preferFreeFormats: true,
+        ffmpegLocation: ffmpegPath, // Pass full path to ffmpeg binary
+        extractorArgs: 'youtube:player_client=android,web;youtube:skip=ads,hls,dash',
+        extractorRetries: 3,
+        output: outputTemplate,
+        quiet: true,
+      },
+      { ytDlpPath: YT_DLP_PATH }
+    );
+  } catch (error) {
+    throw mapYoutubeAccessError(error, 'download audio');
+  }
 
   const files = fs
     .readdirSync(sessionDir)
