@@ -59,9 +59,6 @@ const Projects = () => {
       // }
 
       const data = await response.json();
-      const source = data?.source || (data?.cached ? 'redis' : 'db');
-      const latency = typeof data?.latencyMs === 'number' ? `${data.latencyMs}ms` : 'n/a';
-      console.log(`[Projects] data source: ${source} | latency: ${latency}`);
       setVideos(data.videos || []);
       setError(''); // Clear error on success
     } catch (err) {

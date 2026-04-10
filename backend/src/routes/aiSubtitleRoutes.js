@@ -4,6 +4,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { clerkAuth, ensureUserExists } = require('../middleware/clerkAuth');
 const aiSubtitleController = require('../controllers/aiSubtitleController');
+const { aiInfoRateLimit, aiGenerateRateLimit } = require('../middleware/usageGuard');
 
 const router = Router();
 
@@ -24,9 +25,9 @@ const upload = multer({
 	},
 });
 
-router.post('/youtube/info', clerkAuth, ensureUserExists, aiSubtitleController.getVideoInfo);
-router.post('/youtube/generate', clerkAuth, ensureUserExists, aiSubtitleController.generateSubtitles);
-router.post('/upload/info', clerkAuth, ensureUserExists, upload.single('video'), aiSubtitleController.getUploadedVideoInfo);
-router.post('/upload/generate', clerkAuth, ensureUserExists, upload.single('video'), aiSubtitleController.generateSubtitlesFromUpload);
+router.post('/youtube/info', clerkAuth, ensureUserExists, aiInfoRateLimit, aiSubtitleController.getVideoInfo);
+router.post('/youtube/generate', clerkAuth, ensureUserExists, aiGenerateRateLimit, aiSubtitleController.generateSubtitles);
+router.post('/upload/info', clerkAuth, ensureUserExists, aiInfoRateLimit, upload.single('video'), aiSubtitleController.getUploadedVideoInfo);
+router.post('/upload/generate', clerkAuth, ensureUserExists, aiGenerateRateLimit, upload.single('video'), aiSubtitleController.generateSubtitlesFromUpload);
 
 module.exports = router;

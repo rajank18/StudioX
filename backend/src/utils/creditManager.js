@@ -1,6 +1,8 @@
 const prisma = require('../config/prisma');
 const logger = require('./logger');
 const { isPlanUnlimited } = require('./planManager');
+const { AI_FEATURE_CREDITS, isCreditExemptEmail } = require('../config/creditPolicy');
+const { invalidateUserCreditsCache } = require('./creditCache');
 
 const hasEnoughCredits = async (userId, requiredCredits) => {
   try {
@@ -9,8 +11,17 @@ const hasEnoughCredits = async (userId, requiredCredits) => {
       include: { plan: true },
     });
 
-    if (!user || !user.plan) {
-      logger.warn(`User ${userId} or plan not found`);
+    if (!user) {
+      logger.warn(`User ${userId} not found`);
+      return false;
+    }
+
+    if (isCreditExemptEmail(user.email)) {
+      return true;
+    }
+
+    if (!user.plan) {
+      logger.warn(`User ${userId} plan not found`);
       return false;
     }
 
@@ -50,11 +61,40 @@ const useCredits = async (userId, amount, feature) => {
       include: { plan: true },
     });
 
-    if (!user || !user.plan) {
+    if (!user) {
       return {
         success: false,
         remainingCredits: 0,
-        message: 'User or plan not found',
+        charged: false,
+        message: 'User not found',
+      };
+    }
+
+    if (isCreditExemptEmail(user.email)) {
+      await prisma.usageLog.create({
+        data: {
+          userId,
+          feature,
+          creditsUsed: 0,
+        },
+      });
+
+      await invalidateUserCreditsCache(userId);
+
+      return {
+        success: true,
+        remainingCredits: user.currentCredits,
+        charged: false,
+        message: 'Credit-exempt user. No credits deducted.',
+      };
+    }
+
+    if (!user.plan) {
+      return {
+        success: false,
+        remainingCredits: user.currentCredits,
+        charged: false,
+        message: 'User plan not found',
       };
     }
 
@@ -67,11 +107,14 @@ const useCredits = async (userId, amount, feature) => {
         },
       });
 
+      await invalidateUserCreditsCache(userId);
+
       logger.info(`Unlimited user ${userId} used ${amount} credits for ${feature}`);
 
       return {
         success: true,
         remainingCredits: user.currentCredits,
+        charged: false,
         message: 'Operation completed (unlimited plan)',
       };
     }
@@ -80,6 +123,7 @@ const useCredits = async (userId, amount, feature) => {
       return {
         success: false,
         remainingCredits: user.currentCredits,
+        charged: false,
         message: `Insufficient credits. Required: ${amount}, Available: ${user.currentCredits}`,
       };
     }
@@ -110,11 +154,14 @@ const useCredits = async (userId, amount, feature) => {
       },
     });
 
+    await invalidateUserCreditsCache(userId);
+
     logger.info(`User ${userId} deducted ${amount} credits for ${feature}`);
 
     return {
       success: true,
       remainingCredits: updatedUser.currentCredits,
+      charged: true,
       message: `${amount} credits deducted successfully`,
     };
   } catch (error) {
@@ -143,6 +190,8 @@ const addCredits = async (userId, amount, description) => {
       },
     });
 
+    await invalidateUserCreditsCache(userId);
+
     logger.info(`User ${userId} added ${amount} credits: ${description}`);
 
     return updatedUser.currentCredits;
@@ -154,19 +203,23 @@ const addCredits = async (userId, amount, description) => {
 
 const getFeatureCost = (feature) => {
   const featureCosts = {
-    ai_video: 500,
-    subtitle_generator: 200,
-    silence_remover: 150,
-    reel_cutter: 300,
-    quality_enhancer: 250,
-    noise_reduction: 200,
-    video_to_gif: 100,
-    thumbnail_generator: 150,
-    chapter_generation: 100,
-    youtube_downloader: 50,
+    ai_video_summary: AI_FEATURE_CREDITS.AI_VIDEO_SUMMARY,
+    ai_video_summary_generator: AI_FEATURE_CREDITS.AI_VIDEO_SUMMARY,
+    ai_video_summary_youtube: AI_FEATURE_CREDITS.AI_VIDEO_SUMMARY,
+    'ai-video-summary': AI_FEATURE_CREDITS.AI_VIDEO_SUMMARY,
+    subtitle_generator: AI_FEATURE_CREDITS.AI_SUBTITLE_GENERATOR,
+    ai_subtitle_generator: AI_FEATURE_CREDITS.AI_SUBTITLE_GENERATOR,
+    'ai-subtitle-generator': AI_FEATURE_CREDITS.AI_SUBTITLE_GENERATOR,
+    reel_cutter: AI_FEATURE_CREDITS.AI_REEL_CUTTER_BASE,
+    ai_reel_cutter: AI_FEATURE_CREDITS.AI_REEL_CUTTER_BASE,
+    'reel-cutter': AI_FEATURE_CREDITS.AI_REEL_CUTTER_BASE,
   };
 
-  return featureCosts[feature] || 100;
+  return featureCosts[feature] || 0;
+};
+
+const getReelCutterCost = ({ addCaptions = true } = {}) => {
+  return AI_FEATURE_CREDITS.AI_REEL_CUTTER_BASE + (addCaptions ? AI_FEATURE_CREDITS.AI_REEL_CUTTER_CAPTION_ADDON : 0);
 };
 
 module.exports = {
@@ -175,4 +228,5 @@ module.exports = {
   useCredits,
   addCredits,
   getFeatureCost,
+  getReelCutterCost,
 };

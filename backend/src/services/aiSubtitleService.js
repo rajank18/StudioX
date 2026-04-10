@@ -139,6 +139,7 @@ async function getYoutubeVideoInfo(url) {
   return {
     title: videoInfo.title || 'Untitled video',
     duration: videoInfo.duration_string || null,
+    durationSeconds: Number.isFinite(Number(videoInfo.duration)) ? Number(videoInfo.duration) : null,
     channel: videoInfo.uploader || null,
     thumbnail: videoInfo.thumbnail || null,
   };
@@ -166,6 +167,7 @@ async function getLocalVideoInfo(videoPath, originalFilename = '') {
   return {
     title: originalFilename || path.basename(videoPath),
     duration: formatDurationFromSeconds(metadata?.format?.duration || 0),
+    durationSeconds: Number.isFinite(Number(metadata?.format?.duration)) ? Number(metadata?.format?.duration) : null,
     channel: 'Uploaded from device',
     thumbnail: null,
     fileSize: stats.size,

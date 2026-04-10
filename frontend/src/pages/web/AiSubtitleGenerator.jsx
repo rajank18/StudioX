@@ -13,12 +13,16 @@ import {
   Video,
 } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import { useCredits } from '../../context/CreditContext';
+import CreditStatusCard from '../../components/web/CreditStatusCard';
+import { getAiServiceCreditLabel } from '../../config/creditCosts';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 const AiSubtitleGenerator = () => {
   const { getToken } = useAuth();
   const { user } = useUser();
+  const { credits, isLoadingCredits, refreshCredits } = useCredits();
 
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [uploadedVideoFile, setUploadedVideoFile] = useState(null);
@@ -162,6 +166,7 @@ const AiSubtitleGenerator = () => {
       }
 
       setResult(payload.data);
+      await refreshCredits();
     } catch (err) {
       setError(err.message || 'Unable to generate subtitles right now');
     } finally {
@@ -215,14 +220,20 @@ const AiSubtitleGenerator = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="text-center space-y-2">
-        <div className="flex justify-center mb-4">
-          <div className="p-3 bg-orange-50 rounded-full">
-            <Type className="w-8 h-8 text-primary" />
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div className="text-center md:text-left space-y-2 flex-1">
+          <div className="flex justify-center md:justify-start mb-4">
+            <div className="p-3 bg-orange-50 rounded-full">
+              <Type className="w-8 h-8 text-primary" />
+            </div>
           </div>
+          <h1 className="text-3xl font-bold text-gray-900">AI Subtitle Generator</h1>
+          <p className="text-gray-600">Paste YouTube link → Upload → Generate Subtitles</p>
+          <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+            {getAiServiceCreditLabel('ai-subtitle-generator')}
+          </span>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">AI Subtitle Generator</h1>
-        <p className="text-gray-600">Paste YouTube link → Upload → Generate Subtitles</p>
+        <CreditStatusCard credits={credits} isLoading={isLoadingCredits} className="self-center md:self-start min-w-[170px]" />
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 space-y-6">

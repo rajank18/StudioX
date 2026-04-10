@@ -1,6 +1,7 @@
-const { downloadVideo, getUserVideos, deleteUserVideo, deleteAllUserVideos, getVideoInfo } = require('../services/youtubeService');
+const { downloadVideo, getUserVideos, deleteUserVideo, deleteAllUserVideos, getVideoInfo, enforceProjectLimitForFreePlan } = require('../services/youtubeService');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { getJsonCache, setJsonCache, deleteCache } = require('../config/redis');
+const { PLAN_DEFINITIONS } = require('../config/creditPolicy');
 
 const PROJECTS_CACHE_TTL_SECONDS = parseInt(process.env.PROJECTS_CACHE_TTL_SECONDS || '60', 10);
 const PROJECTS_LOCAL_CACHE_TTL_SECONDS = parseInt(process.env.PROJECTS_LOCAL_CACHE_TTL_SECONDS || '15', 10);
@@ -58,7 +59,7 @@ const downloadYoutubeVideo = asyncHandler(async (req, res) => {
       create: {
         id: userId,
         email: userEmail || `${userId}@temp.com`,
-        currentCredits: 10000,
+        currentCredits: PLAN_DEFINITIONS.Free.monthlyCredits,
       },
     });
   } catch (err) {
@@ -90,6 +91,11 @@ const getUserVideoList = asyncHandler(async (req, res) => {
   
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const pruneResult = await enforceProjectLimitForFreePlan(userId, 5);
+  if (pruneResult.pruned) {
+    await clearProjectsCache(userId);
   }
 
   const cacheKey = getProjectsCacheKey(userId);

@@ -8,6 +8,8 @@ const {
   generateZipToFile,
   subscribeToProgress,
 } = require('../services/hfReelCutterService');
+const { hasEnoughCredits, useCredits, addCredits, getReelCutterCost } = require('../utils/creditManager');
+const { validateFeatureConstraints, getYoutubeDurationSeconds, getLocalVideoDurationSeconds } = require('../utils/featureConstraints');
 
 const jobs = new Map();
 const sseClients = new Map();
@@ -246,6 +248,15 @@ async function runJob(jobId) {
     log('done', { filename: outputFilename, size: fileSize });
   } catch (err) {
     if (progressSubscription) progressSubscription.close();
+
+    if (job.creditCharge?.charged && job.creditCharge.amount > 0) {
+      try {
+        await addCredits(job.userId, job.creditCharge.amount, `Refund: AI Reel Cutter failed (${jobId})`);
+      } catch (_) {
+        // best-effort refund
+      }
+    }
+
     log('error', err);
     markError(err?.message || 'Reel cutter processing failed');
   } finally {
@@ -272,6 +283,55 @@ const startReelCutting = asyncHandler(async (req, res) => {
   const providedJobId = req.body?.job_id ? String(req.body.job_id).trim() : '';
   const jobId = providedJobId || makeJobId();
   const userId = req.auth?.userId || req.headers['x-user-id'] || null;
+  const planName = req.user?.plan?.name || 'Free';
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  if (ytUrl) {
+    const durationSeconds = await getYoutubeDurationSeconds(ytUrl);
+    const constraint = validateFeatureConstraints({
+      featureKey: 'reel-cutter',
+      planName,
+      durationSeconds,
+    });
+    if (!constraint.ok) {
+      return res.status(constraint.statusCode).json({ error: constraint.error });
+    }
+  }
+
+  if (videoFile) {
+    const sizeConstraint = validateFeatureConstraints({
+      featureKey: 'reel-cutter',
+      planName,
+      fileSizeBytes: videoFile.size,
+    });
+    if (!sizeConstraint.ok) {
+      return res.status(sizeConstraint.statusCode).json({ error: sizeConstraint.error });
+    }
+
+    const durationSeconds = await getLocalVideoDurationSeconds(videoFile.path);
+    const durationConstraint = validateFeatureConstraints({
+      featureKey: 'reel-cutter',
+      planName,
+      durationSeconds,
+    });
+    if (!durationConstraint.ok) {
+      return res.status(durationConstraint.statusCode).json({ error: durationConstraint.error });
+    }
+  }
+
+  const creditsRequired = getReelCutterCost({ addCaptions: options.add_captions });
+  const hasCredits = await hasEnoughCredits(userId, creditsRequired);
+  if (!hasCredits) {
+    return res.status(402).json({ error: `Insufficient credits. Required: ${creditsRequired}` });
+  }
+
+  const chargeResult = await useCredits(userId, creditsRequired, 'reel_cutter');
+  if (!chargeResult.success) {
+    return res.status(402).json({ error: chargeResult.message });
+  }
 
   setJob(jobId, {
     status: 'queued',
@@ -285,6 +345,11 @@ const startReelCutting = asyncHandler(async (req, res) => {
     videoOriginalName: videoFile?.originalname || null,
     inputLabel: ytUrl || videoFile?.originalname || 'input-video',
     options,
+    creditCharge: {
+      amount: creditsRequired,
+      charged: Boolean(chargeResult.charged),
+      feature: 'reel_cutter',
+    },
   });
 
   runJob(jobId).catch((err) => {

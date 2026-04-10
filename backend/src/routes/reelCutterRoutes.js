@@ -8,6 +8,8 @@ const {
   streamReelCutterProgress,
   downloadReelZip,
 } = require('../controllers/reelCutterController');
+const { clerkAuth, ensureUserExists } = require('../middleware/clerkAuth');
+const { aiGenerateRateLimit } = require('../middleware/usageGuard');
 
 const router = express.Router();
 
@@ -35,7 +37,7 @@ const upload = multer({
   },
 });
 
-router.post('/generate', upload.single('video_file'), startReelCutting);
+router.post('/generate', clerkAuth, ensureUserExists, aiGenerateRateLimit, upload.single('video_file'), startReelCutting);
 router.get('/status/:jobId', getReelCutterStatus);
 router.get('/progress/:jobId', streamReelCutterProgress);
 router.get('/download/:jobId', downloadReelZip);

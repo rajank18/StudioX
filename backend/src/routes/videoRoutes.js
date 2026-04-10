@@ -11,7 +11,7 @@ router.post('/youtube/info', youtubeController.getYoutubeVideoInfo);
 router.post('/youtube/download', clerkAuth, ensureUserExists, youtubeController.downloadYoutubeVideo);
 
 // Protected routes for user video management  
-router.get('/user/videos', clerkAuth, youtubeController.getUserVideoList);
+router.get('/user/videos', clerkAuth, ensureUserExists, youtubeController.getUserVideoList);
 router.delete('/user/videos/all', clerkAuth, youtubeController.deleteAllUserVideos);
 router.delete('/user/videos/:id', clerkAuth, youtubeController.deleteUserVideoById);
 

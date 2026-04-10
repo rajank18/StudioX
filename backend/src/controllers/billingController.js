@@ -1,39 +1,16 @@
 const creditService = require('../services/creditService');
 const { asyncHandler, AppError } = require('../middleware/errorHandler');
 const logger = require('../utils/logger');
+const { PLAN_DEFINITIONS } = require('../config/creditPolicy');
 
 const purchaseCredits = asyncHandler(async (req, res) => {
   const userId = req.userId;
-  const { amount, paymentMethodId } = req.body;
 
   if (!userId) {
     throw new AppError(401, 'User not authenticated');
   }
 
-  if (!amount || amount <= 0) {
-    throw new AppError(400, 'amount must be greater than 0');
-  }
-
-  const validAmounts = [1000, 5000, 10000, 50000];
-  if (!validAmounts.includes(amount)) {
-    throw new AppError(400, `Invalid amount. Valid options: ${validAmounts.join(', ')}`);
-  }
-
-  try {
-    const result = await creditService.purchaseCredits(userId, amount, paymentMethodId);
-
-    res.json({
-      success: true,
-      message: result.message,
-      creditsPurchased: amount,
-      newBalance: result.newBalance,
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new AppError(400, error.message);
-    }
-    throw error;
-  }
+  throw new AppError(400, 'Top-up credits are currently disabled. Please upgrade your plan.');
 });
 
 const upgradePlan = asyncHandler(async (req, res) => {
@@ -48,7 +25,7 @@ const upgradePlan = asyncHandler(async (req, res) => {
     throw new AppError(400, 'planName is required');
   }
 
-  const validPlans = ['Free', 'Standard', 'Advanced'];
+  const validPlans = ['Free', 'Standard', 'Pro'];
   if (!validPlans.includes(planName)) {
     throw new AppError(400, `Invalid plan. Must be one of: ${validPlans.join(', ')}`);
   }
@@ -128,43 +105,35 @@ const getPlans = asyncHandler(async (req, res) => {
   const plans = [
     {
       name: 'Free',
-      monthlyCredits: 10000,
+      monthlyCredits: PLAN_DEFINITIONS.Free.monthlyCredits,
       isUnlimited: false,
-      price: 0,
+      price: PLAN_DEFINITIONS.Free.priceUsd,
       features: [
-        '10,000 credits/month',
-        'Basic video editing',
-        'Community support',
-        'Watermark on exports',
+        '100 credits/month',
+        'Access to AI tools with fixed per-run credits',
+        'All basic tools are free',
       ],
     },
     {
       name: 'Standard',
-      monthlyCredits: 100000,
+      monthlyCredits: PLAN_DEFINITIONS.Standard.monthlyCredits,
       isUnlimited: false,
-      price: 29,
+      price: PLAN_DEFINITIONS.Standard.priceUsd,
       features: [
-        '100,000 credits/month',
-        'All editing tools',
-        'Priority support',
-        'No watermark',
-        'Cloud storage (50GB)',
-        'Batch processing',
+        '500 credits/month',
+        'Best for regular AI usage',
+        'All basic tools remain free',
       ],
     },
     {
-      name: 'Advanced',
-      monthlyCredits: 500000,
-      isUnlimited: true,
-      price: 79,
+      name: 'Pro',
+      monthlyCredits: PLAN_DEFINITIONS.Pro.monthlyCredits,
+      isUnlimited: false,
+      price: PLAN_DEFINITIONS.Pro.priceUsd,
       features: [
-        'Unlimited credits',
-        'Everything in Standard',
-        'API access',
-        'Team collaboration',
-        'Cloud storage (500GB)',
-        '4K export quality',
-        'Dedicated support',
+        '2000 credits/month',
+        'High-volume AI usage',
+        'All basic tools remain free',
       ],
     },
   ];

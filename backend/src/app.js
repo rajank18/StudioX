@@ -20,6 +20,7 @@ const aiSubtitleRoutes = require('./routes/aiSubtitleRoutes');
 const videoEnhancementRoutes = require('./routes/videoEnhancementRoutes');
 const videoCompressorRoutes = require('./routes/videoCompressorRoutes');
 const reelCutterRoutes = require('./routes/reelCutterRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -113,6 +114,8 @@ app.use('/api/video-enhancement', videoEnhancementRoutes);
 app.use('/api/video-compressor', videoCompressorRoutes);
 // AI reel cutter feature routes
 app.use('/api/reel-cutter', reelCutterRoutes);
+// Admin routes
+app.use('/api/admin', adminRoutes);
 app.use('/api', silenceRemoverRoutes);
 // Thumbnail generator routes
 app.use('/api/thumbnail', thumbnailRoutes);
