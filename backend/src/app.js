@@ -24,8 +24,40 @@ const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
+const DEFAULT_LOCAL_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+
+const getAllowedOrigins = () => {
+  const rawOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
+    .filter(Boolean)
+    .join(',');
+
+  const configuredOrigins = rawOrigins
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  const localOrigins = process.env.NODE_ENV === 'production' ? [] : DEFAULT_LOCAL_ORIGINS;
+
+  return Array.from(new Set([...configuredOrigins, ...localOrigins]));
+};
+
+const allowedOrigins = getAllowedOrigins();
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow non-browser clients (curl/Postman/server-to-server) with no Origin header.
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const normalizedOrigin = origin.trim().replace(/\/+$/, '');
+
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 
