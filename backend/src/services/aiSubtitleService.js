@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const ffprobePath = require('ffprobe-static').path;
@@ -39,6 +40,50 @@ function mapYoutubeAccessError(error, actionLabel = 'process this YouTube video'
   }
 
   return error;
+}
+
+function extractYoutubeVideoId(url) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+
+    if (host.includes('youtu.be')) {
+      return parsed.pathname.replace(/^\//, '').trim() || null;
+    }
+
+    if (host.includes('youtube.com')) {
+      const v = parsed.searchParams.get('v');
+      if (v) return v.trim();
+
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const embedIndex = parts.findIndex((part) => part === 'embed' || part === 'shorts' || part === 'live');
+      if (embedIndex >= 0 && parts[embedIndex + 1]) {
+        return parts[embedIndex + 1].trim();
+      }
+    }
+  } catch (_) {
+    return null;
+  }
+
+  return null;
+}
+
+async function fetchYoutubeOembedMetadata(url) {
+  const response = await axios.get('https://www.youtube.com/oembed', {
+    params: { url, format: 'json' },
+    timeout: 10000,
+  });
+
+  const data = response?.data || {};
+  const videoId = extractYoutubeVideoId(url);
+
+  return {
+    title: data.title || 'Untitled video',
+    duration: null,
+    durationSeconds: null,
+    channel: data.author_name || null,
+    thumbnail: data.thumbnail_url || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null),
+  };
 }
 
 function getAssemblyAiClient() {
@@ -159,7 +204,19 @@ async function getYoutubeVideoInfo(url) {
       { ytDlpPath: YT_DLP_PATH }
     );
   } catch (error) {
-    throw mapYoutubeAccessError(error, 'fetch video metadata');
+    const mappedError = mapYoutubeAccessError(error, 'fetch video metadata');
+
+    if (mappedError instanceof AppError && mappedError.statusCode === 503) {
+      try {
+        const fallback = await fetchYoutubeOembedMetadata(url);
+        logger.warn('Using oEmbed fallback for YouTube metadata', { reason: mappedError.message });
+        return fallback;
+      } catch (fallbackError) {
+        logger.warn('YouTube oEmbed fallback failed', { error: fallbackError.message });
+      }
+    }
+
+    throw mappedError;
   }
 
   return {
