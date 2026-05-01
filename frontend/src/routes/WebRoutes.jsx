@@ -16,6 +16,8 @@ import CropResize from '../pages/web/CropResize';
 import AiVideoSummary from '../pages/web/AiVideoSummary';
 import AiSubtitleGenerator from '../pages/web/AiSubtitleGenerator';
 import VideoEnhancer from '../pages/web/VideoEnhancer'
+import VideoCompressor from '../pages/web/VideoCompressor';
+import AiReelCutter from '../pages/web/AiReelCutter';
 
 const WebRoutes = () => {
   return (
@@ -139,10 +141,30 @@ const WebRoutes = () => {
             </SignedOut>
           </>
         } />
+        <Route path="/tools/ai-reel-cutter" element={
+          <>
+            <SignedIn>
+              <AiReelCutter />
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
         <Route path="/tools/video-enhancer" element={
           <>
             <SignedIn>
               <VideoEnhancer/>
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" replace />
+            </SignedOut>
+          </>
+        } />
+        <Route path="/tools/video-compressor" element={
+          <>
+            <SignedIn>
+              <VideoCompressor />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" replace />
@@ -159,8 +181,11 @@ const WebRoutes = () => {
         <Route path="/crop-resize" element={<Navigate to="/tools/crop-resize" replace />} />
         <Route path="/ai-video-summary" element={<Navigate to="/tools/ai-video-summary" replace />} />
         <Route path="/ai-subtitle-generator" element={<Navigate to="/tools/ai-subtitle-generator" replace />} />
+        <Route path="/ai-reel-cutter" element={<Navigate to="/tools/ai-reel-cutter" replace />} />
         <Route path="/video-enhancer" element={<Navigate to="/tools/video-enhancer" replace />} />
+        <Route path="/video-compressor" element={<Navigate to="/tools/video-compressor" replace />} />
         <Route path="/ai-upscale" element={<Navigate to="/tools/video-enhancer" replace />} />
+        <Route path="/tools/video-compress" element={<Navigate to="/tools/video-compressor" replace />} />
         <Route path="/tools/yt-downloader" element={
           <>
             <SignedIn>

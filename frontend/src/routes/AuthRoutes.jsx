@@ -7,6 +7,8 @@ import SignUp from '../pages/auth/SignUp';
 const AuthRoutes = () => {
   return (
     <Routes>
+      <Route path="/login" element={<Navigate to="/sign-in" replace />} />
+      <Route path="/register" element={<Navigate to="/sign-up" replace />} />
       <Route path="/sign-in" element={
         <>
           <SignedOut>

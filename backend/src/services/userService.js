@@ -1,5 +1,8 @@
 const prisma = require('../config/prisma');
 const logger = require('../utils/logger');
+const { PLAN_DEFINITIONS } = require('../config/creditPolicy');
+const { isCreditExemptEmail } = require('../config/creditPolicy');
+const { getCachedUserCredits, setCachedUserCredits } = require('../utils/creditCache');
 
 const getUserById = async (userId) => {
   try {
@@ -28,7 +31,7 @@ const createOrUpdateUser = async (userId, email) => {
       freePlan = await prisma.plan.create({
         data: {
           name: 'Free',
-          monthlyCredits: 10000,
+          monthlyCredits: PLAN_DEFINITIONS.Free.monthlyCredits,
           isUnlimited: false,
         },
       });
@@ -43,7 +46,7 @@ const createOrUpdateUser = async (userId, email) => {
         id: userId,
         email: email.trim(),
         planId: freePlan.id,
-        currentCredits: 10000,
+        currentCredits: PLAN_DEFINITIONS.Free.monthlyCredits,
         creditResetAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
       include: { plan: true },
@@ -59,6 +62,11 @@ const createOrUpdateUser = async (userId, email) => {
 
 const getUserCredits = async (userId) => {
   try {
+    const cachedCredits = await getCachedUserCredits(userId);
+    if (cachedCredits) {
+      return cachedCredits;
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { plan: true },
@@ -77,16 +85,21 @@ const getUserCredits = async (userId) => {
     });
 
     const totalUsed = usageLogs.reduce((sum, log) => sum + log.creditsUsed, 0);
+    const exempt = isCreditExemptEmail(user.email);
 
-    return {
+    const creditsPayload = {
       userId,
       currentCredits: user.currentCredits,
       monthlyAllowance: user.plan?.monthlyCredits || 0,
       planName: user.plan?.name || 'None',
       isUnlimited: user.plan?.isUnlimited || false,
+      isCreditExempt: exempt,
       creditsUsedThisMonth: totalUsed,
       creditResetAt: user.creditResetAt,
     };
+
+    await setCachedUserCredits(userId, creditsPayload);
+    return creditsPayload;
   } catch (error) {
     logger.error('Error fetching user credits', error);
     throw error;

@@ -6,6 +6,7 @@ import {
   Upload, Video, ChevronRight 
 } from 'lucide-react';
 import { TOOL_BY_KEY, TOOL_ITEMS, DEFAULT_NEW_USER_FEATURE_KEYS } from '../../config/tools';
+import { useCredits } from '../../context/CreditContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -13,6 +14,7 @@ const Home = () => {
   const { user } = useUser();
   const { getToken } = useAuth();
   const navigate = useNavigate();
+  const { credits, isLoadingCredits } = useCredits();
   const [recentServices, setRecentServices] = useState([]);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
@@ -87,14 +89,28 @@ const Home = () => {
       .slice(0, 4);
   }, [recentServices]);
 
+  const currentPlanLabel = `${credits?.planName || 'Free'} Plan`;
+  const creditsLeftLabel = credits?.isCreditExempt
+    ? 'Unlimited'
+    : Number(credits?.currentCredits || 0).toLocaleString();
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Welcome Section */}
         <div className="mb-5">
-          <h1 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-[#fff8e8]' : 'text-gray-900'}`}>
-            Welcome back, {user?.firstName || 'Creator'}!
-          </h1>
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-[#fff8e8]' : 'text-gray-900'}`}>
+              Welcome back, {user?.firstName || 'Creator'}!
+            </h1>
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${isDarkMode
+                ? 'border-[#3b475d] bg-[#1c2433] text-[#ffd7b0]'
+                : 'border-orange-200 bg-orange-50 text-orange-700'}`}
+            >
+              {currentPlanLabel}
+            </span>
+          </div>
         </div>
         {/* Quick Upload Section */}
         <motion.div
@@ -117,10 +133,10 @@ const Home = () => {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           {[
-            { label: 'Videos Processed', value: '0', color: 'text-gray-200' },
-            { label: 'Total Duration', value: '0m', color: 'textgray-200' },
-            { label: 'Credits Left', value: '10,000', color: 'text-gray-200' },
-            { label: 'Projects', value: '0', color: 'text-gray-200' }
+            { label: 'Videos Processed', value: '0', color: 'text-primary' },
+            { label: 'Total Duration', value: '0m', color: 'text-primary' },
+            { label: 'Credits Left', value: isLoadingCredits ? '...' : creditsLeftLabel, color: 'text-primary' },
+            { label: 'Projects', value: '0', color: 'text-primary' }
           ].map((stat, idx) => (
             <motion.div
               key={idx}

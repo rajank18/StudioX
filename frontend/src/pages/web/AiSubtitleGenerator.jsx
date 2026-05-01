@@ -14,12 +14,16 @@ import {
   Video,
 } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import { useCredits } from '../../context/CreditContext';
+import CreditStatusCard from '../../components/web/CreditStatusCard';
+import { getAiServiceCreditLabel } from '../../config/creditCosts';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 const AiSubtitleGenerator = () => {
   const { getToken } = useAuth();
   const { user } = useUser();
+  const { credits, isLoadingCredits, refreshCredits } = useCredits();
 
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [uploadedVideoFile, setUploadedVideoFile] = useState(null);
@@ -163,6 +167,7 @@ const AiSubtitleGenerator = () => {
       }
 
       setResult(payload.data);
+      await refreshCredits();
     } catch (err) {
       setError(err.message || 'Unable to generate subtitles right now');
     } finally {
@@ -223,6 +228,7 @@ const AiSubtitleGenerator = () => {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">AI Subtitle Generator</h1>
+        <p className="text-gray-600">Paste YouTube link → Upload → Generate Subtitles</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 space-y-6">

@@ -79,7 +79,7 @@ const upgradePlan = asyncHandler(async (req, res) => {
     throw new AppError(400, 'planName is required');
   }
 
-  const validPlans = ['Free', 'Standard', 'Advanced'];
+  const validPlans = ['Free', 'Standard', 'Pro'];
   if (!validPlans.includes(planName)) {
     throw new AppError(400, `Invalid plan. Must be one of: ${validPlans.join(', ')}`);
   }

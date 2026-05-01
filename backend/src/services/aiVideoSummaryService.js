@@ -99,6 +99,7 @@ async function getLocalVideoMetadata(videoPath, originalFilename = '') {
   return {
     title,
     duration: formatDurationFromSeconds(durationSeconds),
+    durationSeconds: Number.isFinite(durationSeconds) ? Number(durationSeconds) : null,
     channel: 'Uploaded from device',
     thumbnail: null,
     fileSize: stats.size,
@@ -198,6 +199,7 @@ async function getYoutubeMetadata(url) {
   return {
     title: videoInfo.title || 'Untitled video',
     duration: videoInfo.duration_string || null,
+    durationSeconds: Number.isFinite(Number(videoInfo.duration)) ? Number(videoInfo.duration) : null,
     channel: videoInfo.uploader || null,
     thumbnail: videoInfo.thumbnail || null,
   };

@@ -1,37 +1,14 @@
 const prisma = require('../config/prisma');
-const { addCredits } = require('../utils/creditManager');
 const { updateUserPlan } = require('../utils/planManager');
 const logger = require('../utils/logger');
 
 const purchaseCredits = async (userId, amount, paymentMethodId) => {
-  try {
-    const newCredits = await addCredits(userId, amount, `Credit purchase: ${amount} credits`);
-
-    await prisma.transaction.create({
-      data: {
-        userId,
-        type: 'credit_purchase',
-        amount,
-        description: `Purchased ${amount} credits`,
-      },
-    });
-
-    logger.info(`Credits purchased for user ${userId}: ${amount}`);
-
-    return {
-      success: true,
-      message: 'Credits purchased successfully',
-      newBalance: newCredits,
-    };
-  } catch (error) {
-    logger.error('Error purchasing credits', error);
-    throw error;
-  }
+  throw new Error('Top-up credits are currently disabled. Please upgrade your plan.');
 };
 
 const upgradePlan = async (userId, planName) => {
   try {
-    const validPlans = ['Free', 'Standard', 'Advanced'];
+    const validPlans = ['Free', 'Standard', 'Pro'];
     if (!validPlans.includes(planName)) {
       throw new Error(`Invalid plan: ${planName}`);
     }

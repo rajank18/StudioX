@@ -310,10 +310,59 @@ async function deleteAllUserVideos(userId) {
   return videoResult.count;
 }
 
+/**
+ * Enforce Free plan project cap by keeping only latest N outputs.
+ * Returns the number of deleted records when pruning happens.
+ */
+async function enforceProjectLimitForFreePlan(userId, limit = 5) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { plan: true },
+  });
+
+  if (!user || user.plan?.name !== 'Free') {
+    return { pruned: false, deletedCount: 0 };
+  }
+
+  const outputs = await prisma.userOutput.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, filePath: true },
+  });
+
+  if (outputs.length <= limit) {
+    return { pruned: false, deletedCount: 0 };
+  }
+
+  const staleOutputs = outputs.slice(limit);
+  const staleIds = staleOutputs.map((item) => item.id);
+
+  for (const output of staleOutputs) {
+    try {
+      if (output.filePath && fs.existsSync(output.filePath)) {
+        fs.unlinkSync(output.filePath);
+      }
+    } catch (err) {
+      logger.error('Failed to delete stale project file from disk', err);
+    }
+  }
+
+  const result = await prisma.userOutput.deleteMany({
+    where: {
+      id: { in: staleIds },
+      userId,
+    },
+  });
+
+  logger.info(`Pruned ${result.count} stale projects for Free user ${userId}`);
+  return { pruned: result.count > 0, deletedCount: result.count };
+}
+
 module.exports = {
   getVideoInfo,
   downloadVideo,
   getUserVideos,
   deleteUserVideo,
   deleteAllUserVideos,
+  enforceProjectLimitForFreePlan,
 };

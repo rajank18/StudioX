@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { authMiddleware, attachUserId } = require('../middleware/auth');
+const { clerkAuth, ensureUserExists, setUserIdFromAuth } = require('../middleware/clerkAuth');
 const billingController = require('../controllers/billingController');
 
 const router = Router();
@@ -7,8 +7,9 @@ const router = Router();
 router.get('/plans', billingController.getPlans);
 router.post('/webhook', billingController.stripeWebhook);
 
-router.use(authMiddleware);
-router.use(attachUserId);
+router.use(clerkAuth);
+router.use(ensureUserExists);
+router.use(setUserIdFromAuth);
 
 router.post('/purchase-credits', billingController.purchaseCredits);
 router.post('/upgrade-plan', billingController.upgradePlan);

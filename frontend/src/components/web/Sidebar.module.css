@@ -1,22 +1,43 @@
 .customScrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #555 #181a1b;
+  scrollbar-color: #9ca3af #e5e7eb;
 }
 
 .customScrollbar::-webkit-scrollbar {
   width: 10px;
-  background: transparent;
+  background: #e5e7eb;
 }
 .customScrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #444 40%, #888 60%);
+  background: linear-gradient(180deg, #9ca3af 40%, #6b7280 60%);
   border-radius: 8px;
   min-height: 40px;
-  border: 2px solid #181a1b;
+  border: 2px solid #e5e7eb;
 }
 .customScrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #666 40%, #aaa 60%);
+  background: linear-gradient(180deg, #6b7280 40%, #4b5563 60%);
 }
 .customScrollbar::-webkit-scrollbar-track {
-  background: #181a1b;
+  background: #e5e7eb;
   border-radius: 8px;
+}
+
+:global(.web-theme-dark) .customScrollbar {
+  scrollbar-color: #555 #181a1b;
+}
+
+:global(.web-theme-dark) .customScrollbar::-webkit-scrollbar {
+  background: transparent;
+}
+
+:global(.web-theme-dark) .customScrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #444 40%, #888 60%);
+  border: 2px solid #181a1b;
+}
+
+:global(.web-theme-dark) .customScrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #666 40%, #aaa 60%);
+}
+
+:global(.web-theme-dark) .customScrollbar::-webkit-scrollbar-track {
+  background: #181a1b;
 }

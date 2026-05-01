@@ -1,4 +1,5 @@
-const { ClerkExpressWithAuth, clerkClient } = require('@clerk/clerk-sdk-node');
+const { ClerkExpressWithAuth } = require('@clerk/clerk-sdk-node');
+const { createOrUpdateUser, getUserById } = require('../services/userService');
 
 const clerkAuth = ClerkExpressWithAuth();
 
@@ -15,14 +16,16 @@ const setUserIdFromAuth = (req, res, next) => {
 const ensureUserExists = async (req, res, next) => {
   const userId = req.headers['x-user-id'];
   const userEmail = req.headers['x-user-email'];
-  
-  if (userId && userEmail) {
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
 
+  if (userId && userEmail) {
     try {
-      const { createOrUpdateUser } = require('../services/userService');
-      const user = await createOrUpdateUser(userId, userEmail);
+      // Fast path: avoid an upsert write on every authenticated request.
+      let user = await getUserById(userId);
+
+      if (!user) {
+        user = await createOrUpdateUser(userId, userEmail);
+      }
+
       req.user = user;
       req.userId = user.id;
     } catch (error) {

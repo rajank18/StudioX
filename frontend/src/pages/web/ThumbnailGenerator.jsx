@@ -115,26 +115,31 @@ const ThumbnailGenerator = () => {
         yPos = Math.round((textOptions.yPosition / 100) * frameHeight);
       }
       
+      const requestBody = {
+        sessionId,
+        frameName: selectedFrame.name,
+        text,
+        fontSize: textOptions.fontSize,
+        fontColor: textOptions.fontColor,
+        position: textOptions.customPosition ? 'custom' : textOptions.position,
+        fontFamily: textOptions.fontFamily,
+        showBackground: textOptions.showBackground,
+        backgroundColor: textOptions.backgroundColor,
+        backgroundOpacity: textOptions.backgroundOpacity,
+      };
+
+      if (textOptions.customPosition) {
+        requestBody.xPosition = xPos;
+        requestBody.yPosition = yPos;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/thumbnail/add-text`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          sessionId,
-          frameName: selectedFrame.name,
-          text,
-          fontSize: textOptions.fontSize,
-          fontColor: textOptions.fontColor,
-          position: textOptions.customPosition ? 'custom' : textOptions.position,
-          fontFamily: textOptions.fontFamily,
-          showBackground: textOptions.showBackground,
-          backgroundColor: textOptions.backgroundColor,
-          backgroundOpacity: textOptions.backgroundOpacity,
-          xPosition: xPos,
-          yPosition: yPos,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -153,15 +158,25 @@ const ThumbnailGenerator = () => {
   };
 
   // Download thumbnail
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!generatedThumbnail) return;
-    
-    const link = document.createElement('a');
-    link.href = `${API_BASE_URL}${generatedThumbnail.url}`;
-    link.download = generatedThumbnail.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${generatedThumbnail.url}`);
+      if (!response.ok) throw new Error('Failed to download thumbnail');
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = generatedThumbnail.name || `thumbnail_${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      setError(err.message || 'Failed to download thumbnail');
+    }
   };
 
   return (

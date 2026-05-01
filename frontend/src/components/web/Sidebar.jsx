@@ -79,6 +79,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   ];
 
   const aiTools = [
+    { name: 'AI Reel Cutter', path: '/tools/ai-reel-cutter' },
     { name: 'AI Subtitle Generator', path: '/tools/ai-subtitle-generator' },
     { name: 'AI Video Summary', path: '/tools/ai-video-summary' },
     
@@ -87,6 +88,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const basicTools = [
     { name: 'YouTube Downloader', path: '/tools/yt-downloader' },
     { name: 'Video to GIF', path: '/tools/video-to-gif' },
+    { name: 'Video Compressor', path: '/tools/video-compressor' },
     { name: 'Video Enhancer', path: '/tools/video-enhancer' },
     { name: 'Noise Reduction', path: '/tools/noise-reduction' },
     { name: 'Remove Silence', path: '/tools/remove-silence' },

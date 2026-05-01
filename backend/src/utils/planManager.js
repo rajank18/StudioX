@@ -1,18 +1,22 @@
 const prisma = require('../config/prisma');
 const logger = require('./logger');
+const { PLAN_DEFINITIONS } = require('../config/creditPolicy');
+const { invalidateUserCreditsCache } = require('./creditCache');
 
 const PLAN_CREDITS = {
-  Free: 10000,
-  Standard: 100000,
-  Advanced: 500000,
+  Free: PLAN_DEFINITIONS.Free.monthlyCredits,
+  Standard: PLAN_DEFINITIONS.Standard.monthlyCredits,
+  Pro: PLAN_DEFINITIONS.Pro.monthlyCredits,
+  // Legacy compatibility for existing rows
+  Advanced: PLAN_DEFINITIONS.Pro.monthlyCredits,
 };
 
 const getPlanCredits = (planName) => {
-  return PLAN_CREDITS[planName] || 0;
+  return PLAN_CREDITS[planName] || PLAN_DEFINITIONS.Free.monthlyCredits;
 };
 
 const isPlanUnlimited = (planName) => {
-  return planName === 'Advanced';
+  return false;
 };
 
 const getUserPlan = async (userId) => {
@@ -57,6 +61,8 @@ const updateUserPlan = async (userId, planName) => {
       include: { plan: true },
     });
 
+    await invalidateUserCreditsCache(userId);
+
     logger.info(`User ${userId} upgraded to ${planName} plan`);
     return updatedUser;
   } catch (error) {
@@ -77,7 +83,7 @@ const resetUserCredits = async (userId) => {
       return null;
     }
 
-    const monthlyCredits = PLAN_CREDITS[user.plan.name];
+    const monthlyCredits = getPlanCredits(user.plan.name);
     const nextResetDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     const updatedUser = await prisma.user.update({
@@ -87,6 +93,8 @@ const resetUserCredits = async (userId) => {
         creditResetAt: nextResetDate,
       },
     });
+
+    await invalidateUserCreditsCache(userId);
 
     await prisma.transaction.create({
       data: {
