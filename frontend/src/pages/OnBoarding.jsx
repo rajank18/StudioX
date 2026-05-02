@@ -37,12 +37,15 @@ const plans = [
     name: 'Free',
     price: '$0',
     period: '',
-    description: 'For hobbyists creating projects with AI audio',
+    description: 'For individuals getting started with StudioX',
     features: [
       '100 credits/month',
-      'Basic editing tools',
+      'AI Reel Cutter (5 videos/month)',
+      'Auto Subtitles',
+      'Basic video editing',
       '720p export quality',
-      'Community support'
+      'Community support',
+      'Watermark on exports'
     ]
   },
   {
@@ -53,10 +56,14 @@ const plans = [
     description: 'For creators making premium content for global audiences',
     features: [
       '500 credits/month',
+      'AI Reel Cutter (unlimited)',
+      'Auto Subtitles (unlimited)',
       'All editing tools',
       '1080p export quality',
       'Priority support',
-      'No watermark'
+      'No watermark',
+      'Cloud storage (50GB)',
+      'Batch processing'
     ],
     popular: true
   },
@@ -64,13 +71,17 @@ const plans = [
     name: 'Pro',
     price: '$29',
     period: '/month',
-    description: 'For creators ramping up their content production',
+    description: 'For teams and advanced creators',
     features: [
       '2000 credits/month',
       'Everything in Standard',
       '4K export quality',
+      'AI Video Summary',
+      'Advanced analytics',
+      'Team collaboration',
+      'Cloud storage (500GB)',
       'API access',
-      'Team collaboration'
+      'Dedicated support'
     ]
   }
 ];
