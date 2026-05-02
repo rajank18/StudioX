@@ -75,7 +75,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const menuItems = [
     { name: 'Home', path: '/home', icon: Home },
     { name: 'Your Projects', path: '/projects', icon: FolderOpen },
-    { name: 'All Tools', path: '/tools', icon: Boxes },
+    // { name: 'All Tools', path: '/tools', icon: Boxes },
   ];
 
   const aiTools = [

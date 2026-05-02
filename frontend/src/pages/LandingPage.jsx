@@ -227,44 +227,47 @@ const LandingPage = () => {
               price="$0"
               period=""
               features={[
-                "AI Reel Cutter (5 videos/month)",
-                "Auto Subtitles",
-                "Basic video editing",
-                "720p export quality",
-                "Community support",
-                "Watermark on exports"
+                '100 credits/month',
+                'AI Reel Cutter (5 videos/month)',
+                'Auto Subtitles',
+                'Basic video editing',
+                '720p export quality',
+                'Community support',
+                'Watermark on exports'
               ]}
               isPopular={false}
             />
             <PricingCard
               name="Standard"
-              price="$29"
+              price="$9"
               period="month"
               features={[
-                "AI Reel Cutter (unlimited)",
-                "Auto Subtitles (unlimited)",
-                "All editing tools",
-                "1080p export quality",
-                "Priority support",
-                "No watermark",
-                "Cloud storage (50GB)",
-                "Batch processing"
+                '500 credits/month',
+                'AI Reel Cutter (unlimited)',
+                'Auto Subtitles (unlimited)',
+                'All editing tools',
+                '1080p export quality',
+                'Priority support',
+                'No watermark',
+                'Cloud storage (50GB)',
+                'Batch processing'
               ]}
               isPopular={true}
             />
             <PricingCard
-              name="Advanced"
-              price="$79"
+              name="Pro"
+              price="$29"
               period="month"
               features={[
-                "Everything in Standard",
-                "4K export quality",
-                "AI Video Summary",
-                "Advanced analytics",
-                "Team collaboration",
-                "Cloud storage (500GB)",
-                "API access",
-                "Dedicated support"
+                '2000 credits/month',
+                'Everything in Standard',
+                '4K export quality',
+                'AI Video Summary',
+                'Advanced analytics',
+                'Team collaboration',
+                'Cloud storage (500GB)',
+                'API access',
+                'Dedicated support'
               ]}
               isPopular={false}
             />
