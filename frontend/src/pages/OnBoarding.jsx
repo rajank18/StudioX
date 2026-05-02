@@ -33,47 +33,46 @@ const interests = [
 ];
 
 const plans = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: '',
-    description: 'For hobbyists creating projects with AI audio',
-    features: [
-      '10k credits/month',
-      'Basic editing tools',
-      '720p export quality',
-      'Community support'
-    ]
-  },
-  {
-    name: 'Standard',
-    price: '$29',
-    period: '/month',
-    badge: 'Most Popular',
-    discount: 'First month 50% off',
-    description: 'For creators making premium content for global audiences',
-    features: [
-      '100k credits/month',
-      'All editing tools',
-      '1080p export quality',
-      'Priority support',
-      'No watermark'
-    ],
-    popular: true
-  },
-  {
-    name: 'Advanced',
-    price: '$79',
-    period: '/month',
-    description: 'For creators ramping up their content production',
-    features: [
-      '500k credits/month',
-      'Everything in Standard',
-      '4K export quality',
-      'API access',
-      'Team collaboration'
-    ]
-  }
+  {
+    name: 'Free',
+    price: '$0',
+    period: '',
+    description: 'For hobbyists creating projects with AI audio',
+    features: [
+      '100 credits/month',
+      'Basic editing tools',
+      '720p export quality',
+      'Community support'
+    ]
+  },
+  {
+    name: 'Standard',
+    price: '$9',
+    period: '/month',
+    badge: 'Most Popular',
+    description: 'For creators making premium content for global audiences',
+    features: [
+      '500 credits/month',
+      'All editing tools',
+      '1080p export quality',
+      'Priority support',
+      'No watermark'
+    ],
+    popular: true
+  },
+  {
+    name: 'Pro',
+    price: '$29',
+    period: '/month',
+    description: 'For creators ramping up their content production',
+    features: [
+      '2000 credits/month',
+      'Everything in Standard',
+      '4K export quality',
+      'API access',
+      'Team collaboration'
+    ]
+  }
 ];
 
 const months = [

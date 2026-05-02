@@ -202,7 +202,7 @@ const AiReelCutter = () => {
                   value={ytUrl}
                   onChange={(event) => setYtUrl(event.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-gray-900"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-black !text-black px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -243,7 +243,7 @@ const AiReelCutter = () => {
                 max="20"
                 value={options.num_reels}
                 onChange={(event) => setOptions((prev) => ({ ...prev, num_reels: Number(event.target.value) || 5 }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${isDarkMode ? 'text-white' : 'text-black'}`"
               />
             </div>
 

@@ -16,6 +16,12 @@ const Home = () => {
   const navigate = useNavigate();
   const { credits, isLoadingCredits } = useCredits();
   const [recentServices, setRecentServices] = useState([]);
+  const [stats, setStats] = useState({
+    videosProcessed: 0,
+    totalDuration: 0,
+    projectsCount: 0,
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
       return localStorage.getItem('studiox-theme') === 'dark';
@@ -35,6 +41,73 @@ const Home = () => {
     window.addEventListener('studiox-theme-change', onThemeUpdated);
     return () => window.removeEventListener('studiox-theme-change', onThemeUpdated);
   }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchUserStats = async () => {
+      if (!user?.id) return;
+
+      try {
+        setIsLoadingStats(true);
+        const token = await getToken();
+        const response = await fetch(`${API_BASE_URL}/api/video/user/videos`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            'X-User-Id': user.id,
+            'X-User-Email': user?.emailAddresses?.[0]?.emailAddress || '',
+          },
+        });
+
+        if (!response.ok) {
+          if (!ignore) setIsLoadingStats(false);
+          return;
+        }
+
+        const data = await response.json();
+        const videos = data?.videos || [];
+        
+        // Calculate stats
+        let totalDurationSeconds = 0;
+        videos.forEach((video) => {
+          if (video?.duration) {
+            // Try to parse duration from various formats
+            const match = String(video.duration).match(/\d+/);
+            if (match) totalDurationSeconds += parseInt(match[0], 10);
+          }
+        });
+
+        // Format duration
+        const hours = Math.floor(totalDurationSeconds / 3600);
+        const minutes = Math.floor((totalDurationSeconds % 3600) / 60);
+        const formattedDuration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+        if (!ignore) {
+          setStats({
+            videosProcessed: videos.length,
+            totalDuration: formattedDuration || '0m',
+            projectsCount: videos.filter((v) => v.service === 'youtube').length,
+          });
+          setIsLoadingStats(false);
+        }
+      } catch (_) {
+        if (!ignore) {
+          setStats({
+            videosProcessed: 0,
+            totalDuration: '0m',
+            projectsCount: 0,
+          });
+          setIsLoadingStats(false);
+        }
+      }
+    };
+
+    fetchUserStats();
+    return () => {
+      ignore = true;
+    };
+  }, [getToken, user?.id]);
+
 
   useEffect(() => {
     let ignore = false;
@@ -112,31 +185,15 @@ const Home = () => {
             </span>
           </div>
         </div>
-        {/* Quick Upload Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`rounded-2xl p-8 mb-12 text-white shadow-xl ${isDarkMode ? 'bg-[linear-gradient(150deg,#1f2632_0%,#1a212d_55%,#171d27_100%)] border border-[#2b3445] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_32px_rgba(0,0,0,0.34)]' : 'bg-primary'}`}
-        >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <h2 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-gray-200' : 'text-white'}`}>Start Creating</h2>
-              <p className={isDarkMode ? 'text-gray-400' : 'text-orange-100'}>Upload your video and let AI do the magic</p>
-            </div>
-            <button className={`flex items-center gap-3 ${isDarkMode ? 'px-5 py-2.5 rounded-lg bg-[#2a3344] text-[#fff8e8] border border-[#3a4559] hover:bg-[#313c50]' : 'btn-outline-primary'}`}>
-              <Upload className="w-5 h-5" />
-              Upload Video
-            </button>
-          </div>
-        </motion.div>
+  
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           {[
-            { label: 'Videos Processed', value: '0', color: 'text-primary' },
-            { label: 'Total Duration', value: '0m', color: 'text-primary' },
+            { label: 'Videos Processed', value: isLoadingStats ? '...' : stats.videosProcessed, color: 'text-primary' },
+            { label: 'Total Duration', value: isLoadingStats ? '...' : stats.totalDuration, color: 'text-primary' },
             { label: 'Credits Left', value: isLoadingCredits ? '...' : creditsLeftLabel, color: 'text-primary' },
-            { label: 'Projects', value: '0', color: 'text-primary' }
+            { label: 'Projects', value: isLoadingStats ? '...' : stats.projectsCount, color: 'text-primary' }
           ].map((stat, idx) => (
             <motion.div
               key={idx}
@@ -204,34 +261,7 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Recent Projects */}
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-[#fff8e8]' : 'text-gray-900'}`}>Recent Projects</h2>
-            <button 
-              onClick={() => navigate('/projects')}
-              className="text-primary hover:text-primary-600 font-medium text-sm transition-colors"
-            >
-              View All →
-            </button>
-          </div>
-          <div className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)]' : 'bg-white border border-gray-200'} rounded-2xl p-12 text-center`}>
-            <Video className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-[#46536d]' : 'text-gray-300'}`} />
-            <h3 className={`text-xl font-semibold mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>No projects yet</h3>
-            <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Upload your first video or download from YouTube to get started</p>
-            <div className="flex gap-3 justify-center">
-              <button className="btn-primary">
-                Upload Video
-              </button>
-              <button 
-                onClick={() => navigate('/tools/yt-downloader')}
-                className="btn-outline-primary"
-              >
-                Download from YouTube
-              </button>
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>
   );
