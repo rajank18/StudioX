@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 <div align="center">
 
 # 🎬 StudioX
@@ -597,4 +597,3 @@ Future versions of StudioX may include:
 
 
 StudioX is designed to simplify video content creation by combining AI-powered automation and essential video processing tools into a single platform. With its modular architecture and reusable processing pipeline, the platform is built to be scalable, efficient, and ready for future enhancements.
->>>>>>> cd91e398b5d3894d5fe6f346a5c6a0297cfaf8ab
