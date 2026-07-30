@@ -15,7 +15,7 @@
 
 An all-in-one web-based studio empowering creators, editors, and teams with AI-driven content generation, automatic reel creation, transcriptions, audio enhancements, FFmpeg-powered video utilities, and credit-based subscription management.
 
-[Explore Features](#-features) • [System Architecture](#-system-architecture) • [Quick Start](#-quick-start) • [Tech Stack](#%EF%B8%8F-technology-stack) • [API Documentation](#-api-architecture) • [Deployment](#-deployment)
+[Explore Features](#-features) • [Quick Start](#-quick-start) • [Tech Stack](#%EF%B8%8F-technology-stack) • [API Documentation](#-api-architecture) • [Deployment](#-deployment)
 
 </div>
 
@@ -23,16 +23,9 @@ An all-in-one web-based studio empowering creators, editors, and teams with AI-d
 
 ## 🌟 Overview
 
-**StudioX** bridges the gap between raw video footage and viral content. Built with high performance and creator workflows in mind, StudioX leverages server-side FFmpeg processing, state-of-the-art AI transcription models (AssemblyAI), Large Language Models (OpenAI/OpenRouter), and Hugging Face inference endpoints to automate time-consuming video editing tasks into a unified, single platform.
+**StudioX** bridges the gap between raw video footage and viral content. Built with high performance and creator workflows in mind, StudioX leverages server-side FFmpeg processing, state-of-the-art AI transcription models (AssemblyAI), Large Language Models (OpenAI/OpenRouter), and Hugging Face inference endpoints to automate time-consuming video editing tasks.
 
-### 📌 Problem Statement & Objectives
-Content creators, students, freelancers, and businesses often rely on multiple applications for video summarization, subtitle generation, compression, clipping, and enhancement. This fragmented workflow is time-consuming and inefficient. 
-
-StudioX addresses this by providing an all-in-one solution that:
-* **Centralizes video processing** to reduce tool switching.
-* **Automates repetitive tasks** using AI pipelines.
-* **Delivers fast processing** through server-side FFmpeg utilities.
-* **Maintains a modular architecture** for seamless future expansion.
+Whether you're clipping podcasts into viral short-form reels, generating auto-subtitles, clearing out awkward silences, or compressing video files without quality loss, StudioX provides an intuitive dashboard backed by a robust, scalable architecture.
 
 ---
 
@@ -46,7 +39,7 @@ StudioX addresses this by providing an all-in-one solution that:
 
 ### 🛠️ Media & FFmpeg Utilities
 * **Silence Remover**: Detect and remove silent pauses, dead air, and awkward breaks automatically.
-* **Video-to-GIF Converter**: Convert video clips into smooth, optimized GIF animations with control over FPS, dimensions, and color palette.
+* **Video-to-GIF Converter**: Convert video clips into smooth, optimized GIF animations with control over FPS, dimensions, and color palette optimization.
 * **Audio Noise Reduction**: Filter out background static, hums, wind noise, and audio artifacts for crisp voice clarity.
 * **Crop & Resize**: Intelligent aspect ratio formatting (`16:9`, `9:16`, `1:1`, `4:5`) tailored for YouTube, Instagram, TikTok, and LinkedIn.
 * **Video Enhancer**: Adjust brightness, contrast, saturation, sharpness, and upscale video resolution.
@@ -61,4 +54,65 @@ StudioX addresses this by providing an all-in-one solution that:
 
 ---
 
-## 🏗 System Architecture & AI Pipeline
+## 🛠️ Technology Stack
+
+### Frontend
+* **Core Framework**: React 19 + Vite 7
+* **Styling & UI**: Tailwind CSS v4, Base UI, Lucide React Icons, Framer Motion, Animated CSS
+* **Authentication**: `@clerk/clerk-react`
+* **3D Graphics & Canvas**: Three.js & `@react-three/fiber`
+* **Client Media Processing**: `ffmpeg.js`, `gif.js.optimized`
+* **Routing**: React Router v7
+
+### Backend
+* **Runtime**: Node.js (v18+) & Express.js 4.21
+* **Database & ORM**: PostgreSQL & Prisma ORM v6
+* **Caching & Queue**: Redis
+* **Authentication**: `@clerk/clerk-sdk-node`
+* **Media Engines**: `fluent-ffmpeg`, `ffmpeg-static`, `ffprobe-static`, `yt-dlp-exec`, `sharp`
+* **AI Services**: AssemblyAI SDK, OpenAI SDK, Replicate, Hugging Face Spaces API
+* **Scheduling**: `node-cron`
+
+---
+
+## 📁 Repository Structure
+
+```
+StudioX/
+├── frontend/                     # React + Vite Client Application
+│   ├── src/
+│   │   ├── components/           # Reusable UI components & dialogs
+│   │   ├── context/              # React Context (Auth, Theme, Credits)
+│   │   ├── pages/
+│   │   │   ├── LandingPage.jsx   # Product landing page
+│   │   │   └── web/              # App dashboard & tool pages
+│   │   │       ├── AiReelCutter.jsx
+│   │   │       ├── AiSubtitleGenerator.jsx
+│   │   │       ├── AiVideoSummary.jsx
+│   │   │       ├── RemoveSilence.jsx
+│   │   │       ├── VideoToGif.jsx
+│   │   │       ├── VideoCompressor.jsx
+│   │   │       └── ...
+│   │   └── routes/               # App routing configuration
+│   ├── package.json
+│   └── vite.config.js
+│
+├── backend/                      # Node.js + Express API Server
+│   ├── prisma/
+│   │   └── schema.prisma         # Database models & relationships
+│   ├── src/
+│   │   ├── controllers/          # Request handlers & logic
+│   │   ├── middleware/           # Auth, credit validation, error handler
+│   │   ├── routes/               # API endpoint definitions
+│   │   ├── services/             # Business & AI service logic
+│   │   ├── utils/                # Credit manager, logger, plan manager
+│   │   ├── workers/              # Cron jobs (Monthly resets, task processors)
+│   │   ├── app.js                # Express app setup & CORS setup
+│   │   └── server.js             # HTTP server entrypoint
+│   ├── API.md                    # Detailed API route documentation
+│   ├── PROJECT_STRUCTURE.md     # In-depth architectural blueprint
+│   └── package.json
+│
+└── DEPLOYMENT_CHECKLIST.md       # Production deployment instructions
+=======
+```
