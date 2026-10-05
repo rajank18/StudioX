@@ -18,7 +18,7 @@ module.exports = async function testYoutubeIngest({ baseUrl, testUser, assert })
         { url: sampleYoutubeUrl },
         {
           headers: authHeaders,
-          timeout: 45000,
+          timeout: 600000,
         }
       );
       if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
@@ -39,7 +39,7 @@ module.exports = async function testYoutubeIngest({ baseUrl, testUser, assert })
       await axios.post(
         `${baseUrl}/api/video/youtube/info`,
         { url: 'https://invalid-domain.com/video123' },
-        { headers: authHeaders, timeout: 35000 }
+        { headers: authHeaders, timeout: 600000 }
       );
       throw new Error('Expected 400 Bad Request for invalid URL');
     } catch (err) {

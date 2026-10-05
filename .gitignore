@@ -1,2 +1,5 @@
 backend/.env.example
 frontend/.env.example
+tests/outputs/
+tests/fixtures/sample.mp4
+tests/fixtures/sample.mp3

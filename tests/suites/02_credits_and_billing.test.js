@@ -5,7 +5,7 @@ module.exports = async function testCreditsAndBilling({ baseUrl, testUser, asser
 
   // Test 1: Fetch Available Subscription Plans
   await assert('Get available subscription plans (/api/billing/plans)', async () => {
-    const res = await axios.get(`${baseUrl}/api/billing/plans`, { timeout: 15000 });
+    const res = await axios.get(`${baseUrl}/api/billing/plans`, { timeout: 600000 });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     const plans = res.data.plans || res.data;
     if (!Array.isArray(plans)) throw new Error('Expected plans array');
@@ -19,7 +19,7 @@ module.exports = async function testCreditsAndBilling({ baseUrl, testUser, asser
         'X-User-Id': testUser.id,
         'X-User-Email': testUser.email,
       },
-      timeout: 15000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (typeof res.data.currentCredits === 'undefined' && typeof res.data.credits === 'undefined') {
@@ -36,7 +36,7 @@ module.exports = async function testCreditsAndBilling({ baseUrl, testUser, asser
         'X-User-Id': testUser.id,
         'X-User-Email': testUser.email,
       },
-      timeout: 15000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
   });

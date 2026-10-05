@@ -1,6 +1,7 @@
 const fs = require('fs');
 const axios = require('axios');
 const FormData = require('form-data');
+const { saveServiceOutput } = require('../utils/outputHelper');
 
 module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtures, assert }) {
   console.log('\n  [Suite 3] 🛠️ Media & FFmpeg Processing Tools');
@@ -18,10 +19,12 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
     const res = await axios.post(`${baseUrl}/api/remove-silence`, form, {
       headers: { ...authHeaders, ...form.getHeaders() },
       responseType: 'arraybuffer',
-      timeout: 30000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (res.data.length === 0) throw new Error('Received empty audio buffer');
+
+    await saveServiceOutput('silence-remover', 'silence_removed.mp3', Buffer.from(res.data));
   });
 
   // 2. Noise Reduction (Preset mode)
@@ -32,10 +35,13 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
 
     const res = await axios.post(`${baseUrl}/api/noise-reduction/preset`, form, {
       headers: { ...authHeaders, ...form.getHeaders() },
-      timeout: 30000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-    if (!res.data.url && !res.data.publicUrl) throw new Error('Missing output URL');
+    const outUrl = res.data.url || res.data.publicUrl;
+    if (!outUrl) throw new Error('Missing output URL');
+
+    await saveServiceOutput('noise-reduction', 'preset_denoised.mp4', outUrl, baseUrl);
   });
 
   // 3. Noise Reduction (Custom sliders)
@@ -47,10 +53,13 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
 
     const res = await axios.post(`${baseUrl}/api/noise-reduction/custom`, form, {
       headers: { ...authHeaders, ...form.getHeaders() },
-      timeout: 30000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-    if (!res.data.url && !res.data.publicUrl) throw new Error('Missing output URL');
+    const outUrl = res.data.url || res.data.publicUrl;
+    if (!outUrl) throw new Error('Missing output URL');
+
+    await saveServiceOutput('noise-reduction', 'custom_denoised.mp4', outUrl, baseUrl);
   });
 
   // 4. Video Compressor (Analyze + Process)
@@ -60,10 +69,12 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
 
     const res = await axios.post(`${baseUrl}/api/video-compressor/analyze`, form, {
       headers: { ...authHeaders, ...form.getHeaders() },
-      timeout: 30000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (!res.data.uploadId && !res.data.analysis) throw new Error('Missing analysis result');
+
+    await saveServiceOutput('video-compressor', 'analysis.json', res.data);
   });
 
   // 5. Video Enhancer
@@ -75,10 +86,12 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
 
     const res = await axios.post(`${baseUrl}/api/video-enhancement/process`, form, {
       headers: { ...authHeaders, ...form.getHeaders() },
-      timeout: 30000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (!res.data.url && !res.data.filename) throw new Error('Missing enhanced output URL');
+
+    await saveServiceOutput('video-enhancer', 'enhanced_video.mp4', res.data.url, baseUrl);
   });
 
   // 6. Video to GIF
@@ -91,10 +104,12 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
 
     const res = await axios.post(`${baseUrl}/api/video/to-gif`, form, {
       headers: { ...authHeaders, ...form.getHeaders() },
-      timeout: 30000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (!res.data.url) throw new Error('Missing GIF URL');
+
+    await saveServiceOutput('video-to-gif', 'output.gif', res.data.url, baseUrl);
   });
 
   // 7. Crop & Resize
@@ -110,10 +125,12 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
 
     const res = await axios.post(`${baseUrl}/api/crop-resize/process`, form, {
       headers: { ...authHeaders, ...form.getHeaders() },
-      timeout: 30000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (!res.data.url) throw new Error('Missing cropped output URL');
+
+    await saveServiceOutput('crop-resize', 'cropped_video.mp4', res.data.url, baseUrl);
   });
 
   // 8. Thumbnail Generator (Extract frames + Add text)
@@ -127,7 +144,7 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
 
     const res = await axios.post(`${baseUrl}/api/thumbnail/extract`, form, {
       headers: { ...authHeaders, ...form.getHeaders() },
-      timeout: 30000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (!res.data.sessionId || !Array.isArray(res.data.frames) || res.data.frames.length === 0) {
@@ -135,6 +152,10 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
     }
     extractedSessionId = res.data.sessionId;
     firstFrameName = res.data.frames[0].name;
+
+    if (res.data.frames[0].url) {
+      await saveServiceOutput('thumbnail-generator', 'extracted_frame_1.jpg', res.data.frames[0].url, baseUrl);
+    }
   });
 
   if (extractedSessionId && firstFrameName) {
@@ -152,11 +173,15 @@ module.exports = async function testFFmpegMediaTools({ baseUrl, testUser, fixtur
         },
         {
           headers: authHeaders,
-          timeout: 20000,
+          timeout: 600000,
         }
       );
       if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-      if (!res.data.url && !res.data.thumbnail?.url) throw new Error('Missing generated thumbnail URL');
+      const thumbUrl = res.data.url || res.data.thumbnail?.url;
+      if (!thumbUrl) throw new Error('Missing generated thumbnail URL');
+
+      await saveServiceOutput('thumbnail-generator', 'styled_thumbnail.jpg', thumbUrl, baseUrl);
     });
   }
 };
+

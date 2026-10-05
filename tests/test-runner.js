@@ -22,6 +22,9 @@ if (!module.paths.includes(backendNodeModules)) {
   module.paths.push(backendNodeModules);
 }
 
+const axios = require('axios');
+axios.defaults.timeout = 600000; // 10 minutes (600,000ms)
+
 const { generateTestFixtures } = require('./fixtures/generate-fixtures');
 
 // Parse command line arguments

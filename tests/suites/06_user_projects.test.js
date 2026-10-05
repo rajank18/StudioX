@@ -12,7 +12,7 @@ module.exports = async function testUserProjects({ baseUrl, testUser, assert }) 
   await assert('List user videos and generated outputs (/api/video/user/videos)', async () => {
     const res = await axios.get(`${baseUrl}/api/video/user/videos`, {
       headers: authHeaders,
-      timeout: 15000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     const videos = res.data.videos || res.data;

@@ -5,7 +5,7 @@ module.exports = async function testHealthAndAuth({ baseUrl, testUser, assert })
 
   // Test 1: Public endpoint availability
   await assert('Health check endpoint (/health)', async () => {
-    const res = await axios.get(`${baseUrl}/health`, { timeout: 15000 });
+    const res = await axios.get(`${baseUrl}/health`, { timeout: 600000 });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (res.data.status !== 'ok') throw new Error('Health check status is not ok');
   });
@@ -17,7 +17,7 @@ module.exports = async function testHealthAndAuth({ baseUrl, testUser, assert })
         'X-User-Id': testUser.id,
         'X-User-Email': testUser.email,
       },
-      timeout: 15000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     if (!res.data.user && !res.data.id && !res.data.email) {

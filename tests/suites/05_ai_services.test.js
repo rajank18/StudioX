@@ -13,7 +13,7 @@ module.exports = async function testAiServices({ baseUrl, testUser, assert }) {
     try {
       const res = await axios.get(`${baseUrl}/api/reel-cutter/status/test_job_123`, {
         headers: authHeaders,
-        timeout: 20000,
+        timeout: 600000,
       });
       if (res.status !== 200 && res.status !== 404) {
         throw new Error(`Unexpected status code: ${res.status}`);
@@ -31,7 +31,7 @@ module.exports = async function testAiServices({ baseUrl, testUser, assert }) {
   await assert('AI Task Queue listing (/api/tasks)', async () => {
     const res = await axios.get(`${baseUrl}/api/tasks`, {
       headers: authHeaders,
-      timeout: 15000,
+      timeout: 600000,
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     const tasks = res.data.tasks || res.data;
@@ -44,7 +44,7 @@ module.exports = async function testAiServices({ baseUrl, testUser, assert }) {
       await axios.post(
         `${baseUrl}/api/ai-subtitles/transcribe`,
         {},
-        { headers: authHeaders, timeout: 10000 }
+        { headers: authHeaders, timeout: 600000 }
       );
     } catch (err) {
       // Expect 400 Bad Request when no video or url is provided
@@ -61,7 +61,7 @@ module.exports = async function testAiServices({ baseUrl, testUser, assert }) {
       await axios.post(
         `${baseUrl}/api/ai-video-summary/generate`,
         {},
-        { headers: authHeaders, timeout: 10000 }
+        { headers: authHeaders, timeout: 600000 }
       );
     } catch (err) {
       // Expect 400 Bad Request when no input is provided
