@@ -30,10 +30,13 @@ const { generateTestFixtures } = require('./fixtures/generate-fixtures');
 // Parse command line arguments
 const args = process.argv.slice(2);
 let targetUrl = process.env.API_URL || 'https://studiox-cgp7.onrender.com';
+let suiteFilter = null;
 
 args.forEach((arg) => {
   if (arg.startsWith('--url=')) {
     targetUrl = arg.replace('--url=', '').trim();
+  } else if (arg.startsWith('--suite=')) {
+    suiteFilter = arg.replace('--suite=', '').trim().toLowerCase();
   }
 });
 
@@ -94,10 +97,13 @@ async function assert(testName, fn, retries = 2) {
 
 async function runTestSuite() {
   console.log('\n========================================================');
-  console.log('🎬 StudioX Complete End-to-End System Test Suite');
+  console.log('🎬 StudioX Master Automated Test Suite');
   console.log('========================================================');
   console.log(`🎯 Target API URL: ${targetUrl}`);
   console.log(`👤 Test Identity : ${testUser.email} (${testUser.id})`);
+  if (suiteFilter) {
+    console.log(`🔍 Filtered Suite: ${suiteFilter}`);
+  }
   console.log('========================================================\n');
 
   console.log('📦 Preparing synthetic test media fixtures (sample.mp4, sample.mp3)...');
@@ -112,29 +118,46 @@ async function runTestSuite() {
   };
 
   try {
+    const shouldRun = (name, num) => {
+      if (!suiteFilter) return true;
+      return suiteFilter === name || suiteFilter === String(num) || suiteFilter.includes(name);
+    };
+
     // 1. Health & Auth
-    const suite1 = require('./suites/01_health_and_auth.test');
-    await suite1(context);
+    if (shouldRun('health', 1) || shouldRun('auth', 1)) {
+      const suite1 = require('./suites/01_health_and_auth.test');
+      await suite1(context);
+    }
 
     // 2. Credits & Billing
-    const suite2 = require('./suites/02_credits_and_billing.test');
-    await suite2(context);
+    if (shouldRun('credits', 2) || shouldRun('billing', 2)) {
+      const suite2 = require('./suites/02_credits_and_billing.test');
+      await suite2(context);
+    }
 
     // 3. Media & FFmpeg Tools
-    const suite3 = require('./suites/03_ffmpeg_media_tools.test');
-    await suite3(context);
+    if (shouldRun('ffmpeg', 3) || shouldRun('media', 3)) {
+      const suite3 = require('./suites/03_ffmpeg_media_tools.test');
+      await suite3(context);
+    }
 
     // 4. YouTube Ingestion
-    const suite4 = require('./suites/04_youtube_ingest.test');
-    await suite4(context);
+    if (shouldRun('youtube', 4)) {
+      const suite4 = require('./suites/04_youtube_ingest.test');
+      await suite4(context);
+    }
 
     // 5. AI Services
-    const suite5 = require('./suites/05_ai_services.test');
-    await suite5(context);
+    if (shouldRun('ai', 5)) {
+      const suite5 = require('./suites/05_ai_services.test');
+      await suite5(context);
+    }
 
     // 6. User Projects
-    const suite6 = require('./suites/06_user_projects.test');
-    await suite6(context);
+    if (shouldRun('projects', 6) || shouldRun('user', 6)) {
+      const suite6 = require('./suites/06_user_projects.test');
+      await suite6(context);
+    }
 
   } catch (err) {
     console.error('\n🚨 Critical suite failure:', err.message);
