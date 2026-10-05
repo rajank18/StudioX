@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkles, HelpCircle } from 'lucide-react';
 
 const CONTENT_BY_TOOL = {
   'video-to-gif': {
@@ -219,23 +220,58 @@ const ToolInfoFaqSection = ({ toolKey }) => {
   const content = CONTENT_BY_TOOL[toolKey] || FALLBACK_CONTENT;
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-3">{content.infoTitle}</h3>
-        <ul className="space-y-2 text-sm text-gray-600">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch pt-2">
+      {/* How it Works Column */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6 flex flex-col shadow-sm">
+        <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-gray-200">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <h3 className="font-semibold text-gray-900 text-base">{content.infoTitle}</h3>
+          </div>
+          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+            {content.infoPoints.length} steps
+          </span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto max-h-[350px] pr-1.5 space-y-2.5 custom-clean-scroll">
           {content.infoPoints.map((point, index) => (
-            <li key={`${toolKey}-info-${index}`}>• {point}</li>
+            <div
+              key={`${toolKey}-info-${index}`}
+              className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center justify-center mt-0.5">
+                {index + 1}
+              </span>
+              <span className="text-sm text-gray-600 leading-relaxed">{point}</span>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-3">FAQ</h3>
-        <div className="space-y-3">
+      {/* FAQ Column */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6 flex flex-col shadow-sm">
+        <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-gray-200">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <HelpCircle className="w-4 h-4" />
+            </div>
+            <h3 className="font-semibold text-gray-900 text-base">FAQ</h3>
+          </div>
+          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+            {content.faq.length} Q&As
+          </span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto max-h-[350px] pr-1.5 space-y-2.5 custom-clean-scroll">
           {content.faq.map((item, index) => (
-            <div key={`${toolKey}-faq-${index}`} className="rounded-lg border border-gray-200 p-3">
-              <p className="text-sm font-semibold text-gray-900">{item.q}</p>
-              <p className="text-sm text-gray-600 mt-1">{item.a}</p>
+            <div
+              key={`${toolKey}-faq-${index}`}
+              className="rounded-lg border border-gray-200 p-3 hover:border-gray-300 transition-colors"
+            >
+              <p className="text-sm font-semibold text-gray-900 leading-snug">{item.q}</p>
+              <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{item.a}</p>
             </div>
           ))}
         </div>

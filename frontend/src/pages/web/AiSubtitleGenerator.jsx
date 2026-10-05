@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import {
   Type,
@@ -30,6 +30,8 @@ const AiSubtitleGenerator = () => {
   const [error, setError] = useState('');
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const isBusy = isFetchingInfo || isGenerating;
 
@@ -174,6 +176,10 @@ const AiSubtitleGenerator = () => {
   };
 
   const handleCancel = () => {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
     setYoutubeUrl('');
     setUploadedVideoFile(null);
     setVideoInfo(null);
@@ -184,6 +190,43 @@ const AiSubtitleGenerator = () => {
   const videoPreviewUrl = result?.video?.url ? `${API_BASE_URL}${result.video.url}` : null;
   const subtitleDownloadUrl = result?.subtitle?.url ? `${API_BASE_URL}${result.subtitle.url}` : null;
   const videoDownloadUrl = result?.video?.url ? `${API_BASE_URL}${result.video.url}` : null;
+
+  useEffect(() => {
+    if (!videoPreviewUrl) {
+      if (previewBlobUrl) {
+        URL.revokeObjectURL(previewBlobUrl);
+        setPreviewBlobUrl(null);
+      }
+      return;
+    }
+
+    let active = true;
+    setIsPreviewLoading(true);
+
+    fetch(videoPreviewUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        if (!active) return;
+        const blobUrl = URL.createObjectURL(blob);
+        setPreviewBlobUrl(blobUrl);
+      })
+      .catch((err) => {
+        console.warn('Direct blob preview failed, falling back to direct URL:', err);
+      })
+      .finally(() => {
+        if (active) setIsPreviewLoading(false);
+      });
+
+    return () => {
+      active = false;
+      if (previewBlobUrl) {
+        URL.revokeObjectURL(previewBlobUrl);
+      }
+    };
+  }, [videoPreviewUrl]);
 
   const directDownload = async (url, filename) => {
     const response = await fetch(url);
@@ -324,25 +367,27 @@ const AiSubtitleGenerator = () => {
       </div>
 
       {videoInfo && (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 overflow-hidden">
           <div className="flex flex-col md:flex-row gap-4 items-start">
             {videoInfo.thumbnail && (
               <img
                 src={videoInfo.thumbnail}
                 alt={videoInfo.title || 'Video thumbnail'}
-                className="w-full md:w-64 h-auto rounded-lg border border-gray-200"
+                className="w-full md:w-64 max-h-56 object-contain md:object-cover rounded-lg border border-gray-200 shrink-0 bg-black/40"
               />
             )}
-            <div className="space-y-2 flex-1">
-              <h2 className="text-lg font-semibold text-gray-900">{videoInfo.title || 'Untitled video'}</h2>
+            <div className="space-y-2 flex-1 min-w-0 w-full">
+              <h2 className="text-lg font-semibold text-gray-900 break-words [overflow-wrap:anywhere] leading-snug">
+                {videoInfo.title || 'Untitled video'}
+              </h2>
               <div className="text-sm text-gray-600 space-y-1">
                 <div className="flex items-center gap-2">
-                  <Clock3 className="w-4 h-4 text-gray-500" />
+                  <Clock3 className="w-4 h-4 text-gray-500 shrink-0" />
                   <span>Duration: {videoInfo.duration || 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Tv className="w-4 h-4 text-gray-500" />
-                  <span>Channel: {videoInfo.channel || 'N/A'}</span>
+                  <Tv className="w-4 h-4 text-gray-500 shrink-0" />
+                  <span className="break-words [overflow-wrap:anywhere]">Channel: {videoInfo.channel || 'N/A'}</span>
                 </div>
               </div>
 
@@ -377,13 +422,15 @@ const AiSubtitleGenerator = () => {
       )}
 
       {result && (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 space-y-5">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8 space-y-5 overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
+            <div className="flex-1 min-w-0">
               <h2 className="text-xl font-semibold text-gray-900">Subtitled Video Ready</h2>
-              <p className="text-sm text-gray-600 mt-1">{result?.videoInfo?.title || 'Your video'}</p>
+              <p className="text-sm text-gray-600 mt-1 break-words [overflow-wrap:anywhere] leading-relaxed">
+                {result?.videoInfo?.title || 'Your video'}
+              </p>
             </div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap shrink-0">
               {videoDownloadUrl && (
                 <button
                   onClick={handleDownloadVideo}
@@ -408,13 +455,24 @@ const AiSubtitleGenerator = () => {
           </div>
 
           {videoPreviewUrl ? (
-            <div className="rounded-lg border border-gray-200 bg-black overflow-hidden">
+            <div className="rounded-lg border border-gray-200 bg-black overflow-hidden relative min-h-[220px] flex items-center justify-center">
+              {isPreviewLoading && !previewBlobUrl && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 text-white gap-2">
+                  <Loader className="w-5 h-5 animate-spin text-orange-500" />
+                  <span className="text-sm">Loading video preview...</span>
+                </div>
+              )}
               <video
-                src={videoPreviewUrl}
+                key={previewBlobUrl || videoPreviewUrl}
+                src={previewBlobUrl || videoPreviewUrl}
                 controls
-                className="w-full h-auto"
-                preload="metadata"
-              />
+                className="w-full h-auto max-h-[500px]"
+                preload="auto"
+                playsInline
+              >
+                <source src={previewBlobUrl || videoPreviewUrl} type="video/mp4" />
+                Your browser does not support HTML5 video playback.
+              </video>
             </div>
           ) : (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-10 text-center text-gray-500">

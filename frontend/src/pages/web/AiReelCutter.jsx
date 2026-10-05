@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Scissors, Upload, Link as LinkIcon, Loader2, AlertCircle, Download, Sparkles } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import CustomSelect from '../../components/web/CustomSelect';
 import { useReelCutterJob } from '../../lib/useReelCutterJob';
 import { useCredits } from '../../context/CreditContext';
 import CreditStatusCard from '../../components/web/CreditStatusCard';
@@ -249,14 +250,14 @@ const AiReelCutter = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Resolution</label>
-              <select
+              <CustomSelect
                 value={options.resolution}
                 onChange={(event) => setOptions((prev) => ({ ...prev, resolution: event.target.value }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-              >
-                <option value="720p">720p</option>
-                <option value="1080p">1080p</option>
-              </select>
+                options={[
+                  { value: '720p', label: '720p' },
+                  { value: '1080p', label: '1080p' }
+                ]}
+              />
             </div>
 
             <div>

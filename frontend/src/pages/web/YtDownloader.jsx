@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Download, Link, Loader, CheckCircle, AlertCircle, Play } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import CustomSelect from '../../components/web/CustomSelect';
 import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const YtDownloader = () => {
@@ -208,7 +209,7 @@ const YtDownloader = () => {
           {videoInfo && !result && (
             <div className="space-y-4">
               {/* Video Thumbnail and Info */}
-              <div className="flex gap-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="flex gap-4 bg-gray-50 rounded-lg p-4 border border-gray-200 overflow-hidden">
                 {videoInfo.thumbnail && (
                   <img 
                     src={videoInfo.thumbnail} 
@@ -217,7 +218,7 @@ const YtDownloader = () => {
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 truncate">{videoInfo.title}</h3>
+                  <h3 className="font-semibold text-gray-900 truncate break-words [overflow-wrap:anywhere]" title={videoInfo.title}>{videoInfo.title}</h3>
                   {videoInfo.duration && (
                     <p className="text-sm text-gray-600 mt-1">Duration: {videoInfo.duration}</p>
                   )}
@@ -229,18 +230,16 @@ const YtDownloader = () => {
                 <label htmlFor="quality-select" className="block text-sm font-medium text-gray-900">
                   Select Quality
                 </label>
-                <select
+                <CustomSelect
                   id="quality-select"
                   value={selectedQuality || ''}
                   onChange={(e) => setSelectedQuality(e.target.value)}
-                  className="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors text-black bg-white"
-                >
-                  {videoInfo.formats && videoInfo.formats.map((format) => (
-                    <option key={format.quality} value={format.quality}>
-                      {format.label}
-                    </option>
-                  ))}
-                </select>
+                  options={videoInfo.formats ? videoInfo.formats.map((format) => ({
+                    value: format.quality,
+                    label: format.label
+                  })) : []}
+                  placeholder="Select Quality"
+                />
               </div>
 
               {/* Download and Reset Buttons */}

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Download, Trash2, Play, Calendar, HardDrive, 
   Video, FileText, AlertCircle, Loader, Volume2, 
-  VolumeX, Image, Film, Trash
+  VolumeX, Image, Film, Trash, X, Eye, Copy, Check
 } from 'lucide-react';
 import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
@@ -18,6 +18,12 @@ const Projects = () => {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [imgErrors, setImgErrors] = useState({});
+  const [previewItem, setPreviewItem] = useState(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [textContent, setTextContent] = useState('');
+  const [textCopied, setTextCopied] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
       return localStorage.getItem('studiox-theme') === 'dark';
@@ -216,6 +222,140 @@ const Projects = () => {
     }
   };
 
+  const getFileTypeInfo = (video) => {
+    const filename = (video?.filename || '').toLowerCase();
+    const service = (video?.service || '').toLowerCase();
+
+    if (filename.endsWith('.txt') || service === 'ai-video-summary') {
+      return {
+        type: 'txt',
+        label: 'TXT',
+        category: 'Text Summary',
+        badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        downloadLabel: 'Download .txt',
+        icon: FileText,
+        isVideo: false,
+        isText: true,
+      };
+    }
+
+    if (filename.endsWith('.gif') || service === 'video-to-gif') {
+      return {
+        type: 'gif',
+        label: 'GIF',
+        category: 'Animated GIF',
+        badgeClass: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+        downloadLabel: 'Download .gif',
+        icon: Image,
+        isVideo: false,
+        isText: false,
+      };
+    }
+
+    if (filename.endsWith('.zip') || service === 'reel-cutter') {
+      return {
+        type: 'zip',
+        label: 'ZIP',
+        category: 'Reels Bundle',
+        badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+        downloadLabel: 'Download .zip',
+        icon: Film,
+        isVideo: false,
+        isText: false,
+      };
+    }
+
+    if (filename.endsWith('.mp3') || filename.endsWith('.wav') || filename.endsWith('.m4a') || service === 'silence-remover') {
+      return {
+        type: 'audio',
+        label: 'AUDIO',
+        category: 'Audio File',
+        badgeClass: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+        downloadLabel: 'Download Audio',
+        icon: Volume2,
+        isVideo: false,
+        isText: false,
+      };
+    }
+
+    return {
+      type: 'video',
+      label: 'VIDEO',
+      category: 'Video File',
+      badgeClass: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+      downloadLabel: 'Download Video',
+      icon: Video,
+      isVideo: true,
+      isText: false,
+    };
+  };
+
+  const handleOpenPreview = async (video) => {
+    setPreviewItem(video);
+    const fileInfo = getFileTypeInfo(video);
+
+    if (fileInfo.isVideo) {
+      if (previewBlobUrl) {
+        URL.revokeObjectURL(previewBlobUrl);
+        setPreviewBlobUrl(null);
+      }
+      setPreviewLoading(true);
+      const mediaUrl = getMediaUrl(video.publicUrl);
+      try {
+        const res = await fetch(mediaUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setPreviewBlobUrl(blobUrl);
+      } catch (err) {
+        console.warn('Direct blob load failed, fallback to direct url:', err);
+      } finally {
+        setPreviewLoading(false);
+      }
+    } else if (fileInfo.isText) {
+      setTextContent('');
+      setTextCopied(false);
+      try {
+        const res = await fetch(getMediaUrl(video.publicUrl));
+        if (res.ok) {
+          const text = await res.text();
+          setTextContent(text);
+        } else {
+          setTextContent('Unable to load document preview.');
+        }
+      } catch (err) {
+        setTextContent('Unable to load document preview: ' + err.message);
+      }
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+    setPreviewItem(null);
+    setTextContent('');
+    setTextCopied(false);
+  };
+
+  const handleCopyText = async () => {
+    if (!textContent) return;
+    try {
+      await navigator.clipboard.writeText(textContent);
+      setTextCopied(true);
+      setTimeout(() => setTextCopied(false), 2000);
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrl) {
+        URL.revokeObjectURL(previewBlobUrl);
+      }
+    };
+  }, [previewBlobUrl]);
+
   if (loading) {
     return (
       <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
@@ -407,92 +547,234 @@ const Projects = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {videos.map((video, index) => (
-              <motion.div
-                key={video.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] hover:border-[#ff914c]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_18px_30px_rgba(0,0,0,0.34)]' : 'bg-white border border-gray-200 hover:shadow-lg'} rounded-xl overflow-hidden transition-shadow group`}
-              >
-                {/* Thumbnail */}
-                <div className={`aspect-video relative overflow-hidden ${isDarkMode ? 'bg-[#1a2230]' : 'bg-gray-100'}`}>
-                  {video.thumbnail ? (
-                    <img 
-                      src={video.thumbnail} 
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-[#1a2230]' : 'bg-gray-100'}`} style={{ display: video.thumbnail ? 'none' : 'flex' }}>
-                    <Video className={`w-12 h-12 ${isDarkMode ? 'text-[#46536d]' : 'text-gray-400'}`} />
-                  </div>
-                  
-                  {/* Play overlay */}
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition-all">
-                    <Play className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  
-                  {/* Duration badge */}
-                  {video.duration && (
-                    <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
-                      {video.duration}
-                    </div>
-                  )}
-                </div>
+            {videos.map((video, index) => {
+              const fileType = getFileTypeInfo(video);
+              const hasValidThumbnail = video.thumbnail && !imgErrors[video.id];
 
-                {/* Content */}
-                <div className="p-6">
-                  <h3 className={`font-semibold mb-2 line-clamp-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`} title={video.title}>
-                    {video.title}
-                  </h3>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className={`flex items-center space-x-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      <HardDrive className="w-4 h-4" />
-                      <span>{formatFileSize(video.fileSize)}</span>
+              return (
+                <motion.div
+                  key={video.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`${isDarkMode ? 'bg-[linear-gradient(155deg,#1c2330_0%,#171d27_100%)] border border-[#2b3445] hover:border-[#ff914c]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_12px_24px_rgba(0,0,0,0.28)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_18px_30px_rgba(0,0,0,0.34)]' : 'bg-white border border-gray-200 hover:shadow-lg'} rounded-xl overflow-hidden transition-shadow group flex flex-col`}
+                >
+                  {/* Thumbnail & Preview Area */}
+                  <div className={`aspect-video relative overflow-hidden ${isDarkMode ? 'bg-[#111722]' : 'bg-gray-100'}`}>
+                    {/* Top Right Marker Badge */}
+                    <div className={`absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-md shadow-md flex items-center gap-1.5 ${fileType.badgeClass}`}>
+                      <fileType.icon className="w-3.5 h-3.5" />
+                      <span>{fileType.label}</span>
                     </div>
-                    <div className={`flex items-center space-x-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {getServiceIcon(video.service)}
-                      <span>{getServiceLabel(video.service)}</span>
-                    </div>
-                    <div className={`flex items-center space-x-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      <Calendar className="w-4 h-4" />
-                      <span>{formatDate(video.createdAt)}</span>
-                    </div>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleDownload(video)}
-                      className="flex-1 btn-primary text-sm py-2 flex items-center justify-center"
+                    {/* Thumbnail Image, Video Frame, or Document Placeholder */}
+                    {hasValidThumbnail ? (
+                      <img 
+                        src={getMediaUrl(video.thumbnail)} 
+                        alt={video.title}
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        className="w-full h-full object-cover"
+                        onError={() => setImgErrors(prev => ({ ...prev, [video.id]: true }))}
+                      />
+                    ) : fileType.isVideo ? (
+                      <div className="w-full h-full relative bg-black/60 flex items-center justify-center">
+                        <video 
+                          src={`${getMediaUrl(video.publicUrl)}#t=0.5`}
+                          preload="metadata"
+                          className="w-full h-full object-cover"
+                          muted
+                          playsInline
+                        />
+                        <div className="absolute inset-0 bg-black/25 pointer-events-none" />
+                      </div>
+                    ) : fileType.isText ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#16202e] to-[#0f1520] p-4 text-center">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-1.5 text-emerald-400">
+                          <FileText className="w-6 h-6" />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-200">AI Summary Document</span>
+                        <span className="text-[11px] text-gray-400 mt-0.5">Click to view content</span>
+                      </div>
+                    ) : (
+                      <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-[#1a2230]' : 'bg-gray-100'}`}>
+                        <fileType.icon className={`w-12 h-12 ${isDarkMode ? 'text-[#46536d]' : 'text-gray-400'}`} />
+                      </div>
+                    )}
+
+                    {/* Play / View Overlay (clickable to preview) */}
+                    <div 
+                      onClick={() => handleOpenPreview(video)}
+                      className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer z-10"
+                      title={fileType.isVideo ? "Click to play video" : "Click to view content"}
                     >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </button>
-                    <button
-                      onClick={() => handleDelete(video.id)}
-                      disabled={deletingId === video.id}
-                      className="px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 flex items-center justify-center"
-                    >
-                      {deletingId === video.id ? (
-                        <Loader className="w-4 h-4 animate-spin" />
+                      {fileType.isVideo ? (
+                        <div className="w-12 h-12 rounded-full bg-primary/95 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                          <Play className="w-6 h-6 fill-current ml-0.5" />
+                        </div>
                       ) : (
-                        <Trash2 className="w-4 h-4" />
+                        <div className="px-3 py-1.5 rounded-lg bg-emerald-600/90 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg transform group-hover:scale-105 transition-transform">
+                          <Eye className="w-4 h-4" />
+                          <span>Preview</span>
+                        </div>
                       )}
-                    </button>
+                    </div>
+
+                    {/* Duration badge (only for video or audio) */}
+                    {video.duration && fileType.isVideo && (
+                      <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-0.5 rounded font-mono z-10">
+                        {video.duration}
+                      </div>
+                    )}
                   </div>
-                </div>
-              </motion.div>
-            ))}
+
+                  {/* Content */}
+                  <div className="p-6 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className={`font-semibold mb-2 line-clamp-2 break-words [overflow-wrap:anywhere] ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`} title={video.title}>
+                        {video.title}
+                      </h3>
+                      
+                      <div className="space-y-2 mb-4">
+                        <div className={`flex items-center space-x-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <HardDrive className="w-4 h-4 shrink-0" />
+                          <span>{formatFileSize(video.fileSize)}</span>
+                        </div>
+                        <div className={`flex items-center space-x-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {getServiceIcon(video.service)}
+                          <span>{getServiceLabel(video.service)}</span>
+                        </div>
+                        <div className={`flex items-center space-x-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <Calendar className="w-4 h-4 shrink-0" />
+                          <span>{formatDate(video.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex space-x-2 pt-2">
+                      <button
+                        onClick={() => handleDownload(video)}
+                        className="flex-1 btn-primary text-sm py-2 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>{fileType.downloadLabel}</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(video.id)}
+                        disabled={deletingId === video.id}
+                        className="px-3.5 py-2 border border-red-200 dark:border-red-900/40 text-red-500 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50 flex items-center justify-center cursor-pointer"
+                        title="Delete item"
+                      >
+                        {deletingId === video.id ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* PREVIEW MODAL */}
+      {previewItem && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#18202d] border border-[#2b3548] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-[#252f42] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border shrink-0 ${getFileTypeInfo(previewItem).badgeClass}`}>
+                  {getFileTypeInfo(previewItem).label}
+                </span>
+                <h3 className="font-semibold text-white text-base truncate" title={previewItem.title}>
+                  {previewItem.title}
+                </h3>
+              </div>
+              <button
+                onClick={handleClosePreview}
+                className="w-8 h-8 rounded-lg bg-[#252f42] hover:bg-[#303c54] text-gray-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 custom-clean-scroll">
+              {getFileTypeInfo(previewItem).isVideo ? (
+                <div className="relative rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center border border-[#2b3548]">
+                  {previewLoading && !previewBlobUrl && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/75 z-10 text-white gap-2">
+                      <Loader className="w-6 h-6 animate-spin text-orange-500" />
+                      <span className="text-sm font-medium">Loading video preview...</span>
+                    </div>
+                  )}
+                  <video
+                    key={previewBlobUrl || getMediaUrl(previewItem.publicUrl)}
+                    src={previewBlobUrl || getMediaUrl(previewItem.publicUrl)}
+                    controls
+                    autoPlay
+                    playsInline
+                    preload="auto"
+                    className="w-full h-full max-h-[60vh] object-contain"
+                  >
+                    <source src={previewBlobUrl || getMediaUrl(previewItem.publicUrl)} type="video/mp4" />
+                    Your browser does not support HTML5 video playback.
+                  </video>
+                </div>
+              ) : getFileTypeInfo(previewItem).isText ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-gray-400 pb-1">
+                    <span>Document Content ({formatFileSize(previewItem.fileSize)})</span>
+                    <button
+                      onClick={handleCopyText}
+                      className="px-2.5 py-1 rounded bg-[#252f42] hover:bg-[#323f58] text-gray-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      {textCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span className={textCopied ? 'text-emerald-400 font-semibold' : ''}>{textCopied ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+                  <div className="bg-[#0f141f] border border-[#252f42] rounded-xl p-4 font-mono text-sm text-gray-200 whitespace-pre-wrap max-h-[50vh] overflow-y-auto custom-clean-scroll leading-relaxed selection:bg-orange-500/30">
+                    {textContent || 'Loading document preview...'}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-10 text-center text-gray-400">
+                  <p>Preview is not available for this file type.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 border-t border-[#252f42] flex items-center justify-between gap-3 bg-[#131a26]">
+              <div className="text-xs text-gray-400 space-x-3 hidden sm:block">
+                <span>Size: {formatFileSize(previewItem.fileSize)}</span>
+                {previewItem.duration && <span>Duration: {previewItem.duration}</span>}
+              </div>
+              <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                <button
+                  onClick={handleClosePreview}
+                  className="px-4 py-2 rounded-lg bg-[#252f42] hover:bg-[#303c54] text-gray-300 text-sm font-medium transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => handleDownload(previewItem)}
+                  className="btn-primary text-sm py-2 px-5 flex items-center gap-2 cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{getFileTypeInfo(previewItem).downloadLabel}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
