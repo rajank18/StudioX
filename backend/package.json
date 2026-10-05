@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
+    "test": "node ../tests/test-runner.js",
+    "test:local": "node ../tests/test-runner.js --url=http://localhost:3000",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",

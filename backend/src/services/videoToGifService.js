@@ -21,7 +21,7 @@ async function probeDuration(filePath) {
   });
 }
 
-async function convertToGif(inputPath, startTime = 0, duration = 1, gifWidth = 640) {
+async function convertToGif(inputPath, startTime = 0, duration = 1, gifWidth = 640, userId = null, originalTitle = 'Video to GIF') {
   const id = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   const palettePath = path.join(uploadDir, `${id}_palette.png`);
   const outputFile = `gif_${id}.gif`;

@@ -48,7 +48,7 @@ const convert = asyncHandler(async (req, res) => {
   // Convert
   try {
     const title = `GIF - ${originalFilename}`;
-    const { publicUrl, filename, videoId } = await convertToGif(inputPath, startTime, duration, userId, title);
+    const { publicUrl, filename, videoId } = await convertToGif(inputPath, startTime, duration, gifWidth, userId, title);
 
     // remove input video after successful conversion
     try { fs.unlinkSync(inputPath); } catch (e) {}

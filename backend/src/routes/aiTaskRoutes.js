@@ -1,11 +1,12 @@
 const { Router } = require('express');
-const { authMiddleware, attachUserId } = require('../middleware/auth');
+const { clerkAuth, ensureUserExists, setUserIdFromAuth } = require('../middleware/clerkAuth');
 const aiTaskController = require('../controllers/aiTaskController');
 
 const router = Router();
 
-router.use(authMiddleware);
-router.use(attachUserId);
+router.use(clerkAuth);
+router.use(ensureUserExists);
+router.use(setUserIdFromAuth);
 
 router.post('/create', aiTaskController.createTask);
 router.get('/stats', aiTaskController.getTaskStats);

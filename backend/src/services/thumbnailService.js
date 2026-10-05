@@ -188,7 +188,8 @@ async function addTextToFrame(framePath, text, options = {}) {
     'Comic Sans MS': 'Comic Sans MS'
   };
   
-  if (fontMap[fontFamily]) {
+  // Add font family if available, otherwise let ffmpeg use default font
+  if (fontMap[fontFamily] && process.platform === 'win32') {
     drawtextFilter += `:font='${fontMap[fontFamily]}'`;
   }
 
@@ -216,7 +217,24 @@ async function addTextToFrame(framePath, text, options = {}) {
           size: stats.size
         });
       })
-      .on('error', reject)
+      .on('error', (err) => {
+        // Fallback without special font specification
+        const fallbackFilter = `drawtext=text='${escapedText}':fontsize=${fontSize}:fontcolor=${fontColor}:x=${xPos}:y=${yPos}`;
+        ffmpeg(framePath)
+          .outputOptions(['-vf', fallbackFilter])
+          .output(outputPath)
+          .on('end', () => {
+            const stats = fs.statSync(outputPath);
+            resolve({
+              path: outputPath,
+              name: outputName,
+              url: `/thumbnails/${path.basename(path.dirname(framePath))}/${outputName}`,
+              size: stats.size
+            });
+          })
+          .on('error', () => reject(err))
+          .run();
+      })
       .run();
   });
 }
