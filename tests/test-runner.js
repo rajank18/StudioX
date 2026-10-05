@@ -52,20 +52,43 @@ const stats = {
   startTime: Date.now(),
 };
 
-async function assert(testName, fn) {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function assert(testName, fn, retries = 2) {
   const t0 = Date.now();
-  try {
-    process.stdout.write(`    ⏳ ${testName}... `);
-    await fn();
-    const duration = Date.now() - t0;
-    process.stdout.write(`\r    ✅ ${testName} (${duration}ms)\n`);
-    stats.passed++;
-  } catch (err) {
-    const duration = Date.now() - t0;
-    const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error';
-    process.stdout.write(`\r    ❌ ${testName} (${duration}ms)\n`);
-    console.error(`       Error details: ${msg}`);
-    stats.failed++;
+  for (let attempt = 1; attempt <= retries + 1; attempt++) {
+    try {
+      if (attempt === 1) {
+        process.stdout.write(`    ⏳ ${testName}... `);
+      } else {
+        process.stdout.write(`\r    ⏳ ${testName} (retry ${attempt - 1})... `);
+      }
+      await fn();
+      const duration = Date.now() - t0;
+      process.stdout.write(`\r    ✅ ${testName} (${duration}ms)\n`);
+      stats.passed++;
+      await sleep(800); // Friendly pacing between requests
+      return;
+    } catch (err) {
+      const status = err.response?.status;
+      const isRetryable = status === 429 || status === 502 || status === 503 || err.code === 'ECONNRESET';
+
+      if (isRetryable && attempt <= retries) {
+        const backoffMs = status === 429 ? 3000 : 2500;
+        await sleep(backoffMs);
+        continue;
+      }
+
+      const duration = Date.now() - t0;
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error';
+      process.stdout.write(`\r    ❌ ${testName} (${duration}ms)\n`);
+      console.error(`       Error details: ${msg}`);
+      stats.failed++;
+      await sleep(500);
+      return;
+    }
   }
 }
 
