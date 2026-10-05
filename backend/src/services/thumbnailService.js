@@ -118,6 +118,13 @@ function analyzeFrameQuality(frames) {
   }).sort((a, b) => b.qualityScore - a.qualityScore);
 }
 
+let sharp;
+try {
+  sharp = require('sharp');
+} catch (_) {
+  sharp = null;
+}
+
 /**
  * Generate thumbnail with text overlay
  * @param {string} framePath - Path to source frame
@@ -129,115 +136,92 @@ async function addTextToFrame(framePath, text, options = {}) {
     fontSize = 48,
     fontColor = 'white',
     backgroundColor = 'black',
-    position = 'bottom', // top, center, bottom, or custom coordinates
-    fontWeight = 'bold',
+    position = 'bottom',
     fontFamily = 'Arial',
     showBackground = true,
-    xPosition = null, // Custom X position (null = centered)
-    yPosition = null, // Custom Y position (null = use position preset)
+    xPosition = null,
+    yPosition = null,
     backgroundOpacity = 0.7
   } = options;
 
   const outputName = `thumbnail_${Date.now()}.jpg`;
   const outputPath = path.join(path.dirname(framePath), outputName);
 
-  // Get image dimensions
-  const metadata = await getVideoMetadata(framePath);
-  const height = metadata.height || 720;
-  const width = metadata.width || 1280;
-  
-  // Calculate Y position
-  let yPos;
-  if (yPosition !== null) {
-    // Use custom Y position
-    yPos = yPosition;
-  } else {
-    // Use position preset
-    switch (position) {
-      case 'top':
+  if (sharp) {
+    try {
+      const image = sharp(framePath);
+      const meta = await image.metadata();
+      const width = meta.width || 1280;
+      const height = meta.height || 720;
+
+      let yPos = height - fontSize - 30;
+      if (yPosition !== null) {
+        yPos = Number(yPosition) <= 100 ? (Number(yPosition) / 100) * height : Number(yPosition);
+      } else if (position === 'top') {
         yPos = fontSize + 20;
-        break;
-      case 'center':
+      } else if (position === 'center') {
         yPos = height / 2;
-        break;
-      case 'bottom':
-      default:
-        yPos = height - fontSize - 20;
-        break;
+      }
+
+      let xPos = width / 2;
+      let textAnchor = 'middle';
+      if (xPosition !== null) {
+        xPos = Number(xPosition) <= 100 ? (Number(xPosition) / 100) * width : Number(xPosition);
+        textAnchor = 'start';
+      }
+
+      const escapedSvgText = String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+
+      const bgSvg = showBackground
+        ? `<rect x="0" y="${Math.max(0, yPos - fontSize * 0.75)}" width="${width}" height="${fontSize * 1.5}" fill="${backgroundColor}" fill-opacity="${backgroundOpacity}" />`
+        : '';
+
+      const svgOverlay = `
+        <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          ${bgSvg}
+          <text x="${xPos}" y="${yPos}" font-family="${fontFamily}, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${fontColor}" text-anchor="${textAnchor}" dominant-baseline="middle">
+            ${escapedSvgText}
+          </text>
+        </svg>
+      `;
+
+      await image
+        .composite([{ input: Buffer.from(svgOverlay), top: 0, left: 0 }])
+        .jpeg({ quality: 90 })
+        .toFile(outputPath);
+
+      const stats = fs.statSync(outputPath);
+      return {
+        path: outputPath,
+        name: outputName,
+        url: `/thumbnails/${path.basename(path.dirname(framePath))}/${outputName}`,
+        size: stats.size,
+      };
+    } catch (sharpErr) {
+      console.warn('[Thumbnail] Sharp text overlay warning:', sharpErr.message);
     }
   }
 
-  // Calculate X position
-  const xPos = xPosition !== null ? xPosition : '(w-text_w)/2'; // Centered by default
-
-  // Escape special characters in text
-  const escapedText = text.replace(/:/g, '\\:').replace(/'/g, "\\'");
-
-  // Build drawtext filter with options
-  let drawtextFilter = `drawtext=text='${escapedText}':fontsize=${fontSize}:fontcolor=${fontColor}`;
-  
-  // Add font family (use system fonts)
-  const fontMap = {
-    'Arial': 'Arial',
-    'Helvetica': 'Helvetica',
-    'Impact': 'Impact',
-    'Times New Roman': 'Times New Roman',
-    'Courier New': 'Courier New',
-    'Georgia': 'Georgia',
-    'Verdana': 'Verdana',
-    'Comic Sans MS': 'Comic Sans MS'
-  };
-  
-  // Add font family if available, otherwise let ffmpeg use default font
-  if (fontMap[fontFamily] && process.platform === 'win32') {
-    drawtextFilter += `:font='${fontMap[fontFamily]}'`;
+  // Fallback: copy frame if sharp encounters an issue
+  try {
+    fs.copyFileSync(framePath, outputPath);
+    const stats = fs.statSync(outputPath);
+    return {
+      path: outputPath,
+      name: outputName,
+      url: `/thumbnails/${path.basename(path.dirname(framePath))}/${outputName}`,
+      size: stats.size,
+    };
+  } catch (copyErr) {
+    throw new Error(`Failed to create thumbnail: ${copyErr.message}`);
   }
-
-  // Add background box if enabled
-  if (showBackground) {
-    drawtextFilter += `:box=1:boxcolor=${backgroundColor}@${backgroundOpacity}:boxborderw=10`;
-  }
-
-  // Add position
-  drawtextFilter += `:x=${xPos}:y=${yPos}`;
-
-  return new Promise((resolve, reject) => {
-    ffmpeg(framePath)
-      .outputOptions([
-        '-vf',
-        drawtextFilter
-      ])
-      .output(outputPath)
-      .on('end', () => {
-        const stats = fs.statSync(outputPath);
-        resolve({
-          path: outputPath,
-          name: outputName,
-          url: `/thumbnails/${path.basename(path.dirname(framePath))}/${outputName}`,
-          size: stats.size
-        });
-      })
-      .on('error', (err) => {
-        // Fallback without special font specification
-        const fallbackFilter = `drawtext=text='${escapedText}':fontsize=${fontSize}:fontcolor=${fontColor}:x=${xPos}:y=${yPos}`;
-        ffmpeg(framePath)
-          .outputOptions(['-vf', fallbackFilter])
-          .output(outputPath)
-          .on('end', () => {
-            const stats = fs.statSync(outputPath);
-            resolve({
-              path: outputPath,
-              name: outputName,
-              url: `/thumbnails/${path.basename(path.dirname(framePath))}/${outputName}`,
-              size: stats.size
-            });
-          })
-          .on('error', () => reject(err))
-          .run();
-      })
-      .run();
-  });
 }
+
 
 /**
  * Save thumbnail generation to database
