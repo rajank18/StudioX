@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Loader, CheckCircle, AlertCircle } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import { API_BASE_URL } from '../../config/api';
 
 const RemoveSilence = () => {
     const { getToken } = useAuth();
@@ -35,7 +36,7 @@ const RemoveSilence = () => {
 
         try {
             const token = await getToken();
-            const response = await fetch('http://localhost:3000/api/remove-silence', {
+            const response = await fetch(`${API_BASE_URL}/api/remove-silence`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
+import { API_BASE_URL } from '../config/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 const CREDIT_CACHE_KEY_PREFIX = 'studiox-credit-cache';
 
 const CreditContext = createContext(null);

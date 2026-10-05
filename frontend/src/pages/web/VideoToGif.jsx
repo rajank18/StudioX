@@ -3,6 +3,7 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Download, Loader, ArrowLeft, CheckCircle, AlertCircle, Link } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB, match backend
 
@@ -85,7 +86,7 @@ const VideoToGif = () => {
 
     try {
       // Fetch info first (optional, but gives us formats)
-      const infoRes = await fetch('http://localhost:3000/api/video/youtube/info', {
+      const infoRes = await fetch(`${API_BASE_URL}/api/video/youtube/info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: youtubeUrl.trim() }),
@@ -100,7 +101,7 @@ const VideoToGif = () => {
       let token = null;
       try { token = await getToken(); } catch (e) { token = null; }
 
-      const dlRes = await fetch('http://localhost:3000/api/video/youtube/download', {
+      const dlRes = await fetch(`${API_BASE_URL}/api/video/youtube/download`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ const VideoToGif = () => {
       if (!dlRes.ok) throw new Error(dlData.error || 'YouTube download failed');
 
       const file = dlData.file;
-      const fullUrl = `http://localhost:3000${file.url}`;
+      const fullUrl = getMediaUrl(file.url);
 
       // Use downloaded file for preview/timeline. We do NOT automatically convert here.
       setVideoUrl(fullUrl);
@@ -178,7 +179,7 @@ const VideoToGif = () => {
       };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('http://localhost:3000/api/video/to-gif', {
+      const res = await fetch(`${API_BASE_URL}/api/video/to-gif`, {
         method: 'POST',
         headers,
         body: fd,
@@ -187,7 +188,7 @@ const VideoToGif = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Conversion failed');
 
-      const fullUrl = `http://localhost:3000${data.url}`;
+      const fullUrl = getMediaUrl(data.url);
       setResultUrl(fullUrl);
       setSuccess(true);
       setIsLoading(false);

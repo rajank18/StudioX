@@ -7,6 +7,7 @@ import {
   Video, FileText, AlertCircle, Loader, Volume2, 
   VolumeX, Image, Film, Trash
 } from 'lucide-react';
+import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const Projects = () => {
   const { user } = useUser();
@@ -46,7 +47,7 @@ const Projects = () => {
       setLoading(true);
       setError(''); // Clear any previous errors
       const token = await getToken();
-      const response = await fetch('http://localhost:3000/api/video/user/videos', {
+      const response = await fetch(`${API_BASE_URL}/api/video/user/videos`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'X-User-Id': user?.id || '',
@@ -70,7 +71,7 @@ const Projects = () => {
 
   const handleDownload = async (video) => {
     try {
-      const response = await fetch(`http://localhost:3000${video.publicUrl}`);
+      const response = await fetch(getMediaUrl(video.publicUrl));
       if (!response.ok) throw new Error('Download failed');
       
       const blob = await response.blob();
@@ -96,7 +97,7 @@ const Projects = () => {
       setDeletingId(videoId);
       setError(''); // Clear any previous errors
       const token = await getToken();
-      const response = await fetch(`http://localhost:3000/api/video/user/videos/${videoId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/video/user/videos/${videoId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -125,7 +126,7 @@ const Projects = () => {
       setDeletingAll(true);
       setError(''); // Clear any previous errors
       const token = await getToken();
-      const response = await fetch('http://localhost:3000/api/video/user/videos/all', {
+      const response = await fetch(`${API_BASE_URL}/api/video/user/videos/all`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

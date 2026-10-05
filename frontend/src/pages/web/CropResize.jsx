@@ -4,9 +4,10 @@ import { Upload, Download, Loader, CheckCircle, AlertCircle, Crop, Scissors } fr
 import CropResizeTimeline from '../../components/web/CropResizeTimeline';
 import CropResizeFrame from '../../components/web/CropResizeFrame';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
-const API_BASE = 'http://localhost:3000/api/crop-resize';
+const API_BASE = `${API_BASE_URL}/api/crop-resize`;
 
 export default function CropResize() {
   const { getToken } = useAuth();
@@ -103,7 +104,7 @@ export default function CropResize() {
         throw new Error(data.error || data.details || 'Processing failed');
       }
 
-      const fullUrl = `http://localhost:3000${data.url}`;
+      const fullUrl = getMediaUrl(data.url);
       setResultUrl(fullUrl);
       setSuccess(true);
     } catch (err) {

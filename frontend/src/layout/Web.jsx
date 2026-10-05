@@ -5,6 +5,7 @@ import Sidebar from '../components/web/Sidebar';
 import Navbar from '../components/web/Navbar';
 import Footer from '../components/web/Footer';
 import { CreditProvider } from '../context/CreditContext';
+import { API_BASE_URL } from '../config/api';
 
 const WebLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -39,7 +40,7 @@ const WebLayout = () => {
         if (!token) return; // wait until token is available
         
         const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
-        await fetch('http://localhost:3000/api/users/me', {
+        await fetch(`${API_BASE_URL}/api/users/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'X-User-Id': user.id,

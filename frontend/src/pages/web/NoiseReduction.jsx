@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Download, Loader, CheckCircle, AlertCircle, Volume2, Mic, Sliders } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const MAX_BYTES = 500 * 1024 * 1024; // 500 MB
 
@@ -108,10 +109,10 @@ const NoiseReduction = () => {
 
       let endpoint = '';
       if (mode === 'preset') {
-        endpoint = 'http://localhost:3000/api/noise-reduction/preset';
+        endpoint = `${API_BASE_URL}/api/noise-reduction/preset`;
         fd.append('preset', selectedPreset);
       } else {
-        endpoint = 'http://localhost:3000/api/noise-reduction/custom';
+        endpoint = `${API_BASE_URL}/api/noise-reduction/custom`;
         fd.append('noiseReduction', String(noiseReduction));
         fd.append('voiceEnhancement', String(voiceEnhancement));
       }
@@ -139,7 +140,7 @@ const NoiseReduction = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Processing failed');
 
-      const fullUrl = `http://localhost:3000${data.url}`;
+      const fullUrl = getMediaUrl(data.url);
       setResultUrl(fullUrl);
       setSuccess(true);
       setIsLoading(false);
@@ -160,7 +161,7 @@ const NoiseReduction = () => {
       // Extract filename from URL
       const filename = resultUrl.split('/').pop();
       // Use dedicated download endpoint
-      const downloadUrl = `http://localhost:3000/download/${filename}`;
+      const downloadUrl = `${API_BASE_URL}/download/${filename}`;
       
       const a = document.createElement('a');
       a.href = downloadUrl;

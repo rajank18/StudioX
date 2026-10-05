@@ -16,8 +16,7 @@ import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
 import { useCredits } from '../../context/CreditContext';
 import CreditStatusCard from '../../components/web/CreditStatusCard';
 import { getAiServiceCreditLabel } from '../../config/creditCosts';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const AiSubtitleGenerator = () => {
   const { getToken } = useAuth();

@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Sparkles, CheckCircle2, Loader2, WandSparkles, SlidersHorizontal, Film, AlertCircle, Download } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const FLOW_STEPS = [
 	'Input Video',
@@ -113,7 +112,7 @@ const VideoEnhancer = () => {
 				throw new Error(data.error || data.details || 'Video enhancement failed');
 			}
 
-			const publicUrl = `${API_BASE_URL}${data.url}`;
+			const publicUrl = getMediaUrl(data.url);
 			setResult({
 				url: publicUrl,
 				filename: data.filename,

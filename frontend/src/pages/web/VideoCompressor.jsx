@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Upload, Gauge, Loader2, AlertCircle, CheckCircle2, Download, FileVideo, Minimize2 } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const FALLBACK_FLOW = [
   'User Upload',
@@ -238,7 +237,7 @@ const VideoCompressor = () => {
     if (!result?.url) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}${result.url}`);
+      const response = await fetch(getMediaUrl(result.url));
       if (!response.ok) throw new Error('Failed to download compressed video');
 
       const blob = await response.blob();

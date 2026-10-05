@@ -6,8 +6,8 @@ import { useReelCutterJob } from '../../lib/useReelCutterJob';
 import { useCredits } from '../../context/CreditContext';
 import CreditStatusCard from '../../components/web/CreditStatusCard';
 import { getAiServiceCreditLabel } from '../../config/creditCosts';
+import { API_BASE_URL } from '../../config/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 const STAGE_LABELS = {
   queued: 'Queued',

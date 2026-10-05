@@ -3,8 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { Upload, Image, Type, Download, Loader, AlertCircle, Check } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const ThumbnailGenerator = () => {
   const { getToken } = useAuth();
@@ -288,7 +287,7 @@ const ThumbnailGenerator = () => {
                 }`}
               >
                 <img
-                  src={`${API_BASE_URL}${frame.url}`}
+                  src={getMediaUrl(frame.url)}
                   alt={`Frame ${index + 1}`}
                   className="w-full h-auto"
                 />
@@ -545,7 +544,7 @@ const ThumbnailGenerator = () => {
                 {generatedThumbnail ? (
                   <div className="space-y-4 p-4">
                     <img
-                      src={`${API_BASE_URL}${generatedThumbnail.url}`}
+                      src={getMediaUrl(generatedThumbnail.url)}
                       alt="Generated Thumbnail"
                       className="w-full h-auto rounded-lg"
                     />
@@ -560,7 +559,7 @@ const ThumbnailGenerator = () => {
                 ) : (
                   <div className="aspect-video bg-gray-100 flex items-center justify-center p-4">
                     <img
-                      src={`${API_BASE_URL}${selectedFrame.url}`}
+                      src={getMediaUrl(selectedFrame.url)}
                       alt="Selected Frame"
                       className="w-full h-auto rounded-lg"
                     />

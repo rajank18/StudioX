@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { Download, Link, Loader, CheckCircle, AlertCircle, Play } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const YtDownloader = () => {
   const { getToken } = useAuth();
@@ -41,7 +42,7 @@ const YtDownloader = () => {
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:3000/api/video/youtube/info', {
+      const response = await fetch(`${API_BASE_URL}/api/video/youtube/info`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,7 +80,7 @@ const YtDownloader = () => {
 
     try {
       const token = await getToken();
-      const response = await fetch('http://localhost:3000/api/video/youtube/download', {
+      const response = await fetch(`${API_BASE_URL}/api/video/youtube/download`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +111,7 @@ const YtDownloader = () => {
   const handleDownloadFile = async () => {
     if (result?.url) {
       try {
-        const fullUrl = `http://localhost:3000${result.url}`;
+        const fullUrl = getMediaUrl(result.url);
         
         // Fetch the file as blob and trigger download
         const response = await fetch(fullUrl);
