@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { Upload, Image, Type, Download, Loader, AlertCircle, Check } from 'lucide-react';
 import ToolInfoFaqSection from '../../components/web/ToolInfoFaqSection';
+import CustomSelect from '../../components/web/CustomSelect';
 import { API_BASE_URL, getMediaUrl } from '../../config/api';
 
 const ThumbnailGenerator = () => {
@@ -330,20 +331,20 @@ const ThumbnailGenerator = () => {
               {/* Font Family */}
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-900">Font Family</label>
-                <select
+                <CustomSelect
                   value={textOptions.fontFamily}
                   onChange={(e) => setTextOptions({ ...textOptions, fontFamily: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-gray-900 bg-white"
-                >
-                  <option value="Arial">Arial</option>
-                  <option value="Helvetica">Helvetica</option>
-                  <option value="Impact">Impact</option>
-                  <option value="Times New Roman">Times New Roman</option>
-                  <option value="Courier New">Courier New</option>
-                  <option value="Georgia">Georgia</option>
-                  <option value="Verdana">Verdana</option>
-                  <option value="Comic Sans MS">Comic Sans MS</option>
-                </select>
+                  options={[
+                    { value: 'Arial', label: 'Arial' },
+                    { value: 'Helvetica', label: 'Helvetica' },
+                    { value: 'Impact', label: 'Impact' },
+                    { value: 'Times New Roman', label: 'Times New Roman' },
+                    { value: 'Courier New', label: 'Courier New' },
+                    { value: 'Georgia', label: 'Georgia' },
+                    { value: 'Verdana', label: 'Verdana' },
+                    { value: 'Comic Sans MS', label: 'Comic Sans MS' }
+                  ]}
+                />
               </div>
 
               {/* Font Size with Live Preview */}
@@ -382,20 +383,21 @@ const ThumbnailGenerator = () => {
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-900">Text Color</label>
                 <div className="flex gap-2">
-                  <select
+                  <CustomSelect
                     value={textOptions.fontColor}
                     onChange={(e) => setTextOptions({ ...textOptions, fontColor: e.target.value })}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-gray-900 bg-white"
-                  >
-                    <option value="white">White</option>
-                    <option value="black">Black</option>
-                    <option value="red">Red</option>
-                    <option value="yellow">Yellow</option>
-                    <option value="orange">Orange</option>
-                    <option value="green">Green</option>
-                    <option value="blue">Blue</option>
-                    <option value="purple">Purple</option>
-                  </select>
+                    options={[
+                      { value: 'white', label: 'White' },
+                      { value: 'black', label: 'Black' },
+                      { value: 'red', label: 'Red' },
+                      { value: 'yellow', label: 'Yellow' },
+                      { value: 'orange', label: 'Orange' },
+                      { value: 'green', label: 'Green' },
+                      { value: 'blue', label: 'Blue' },
+                      { value: 'purple', label: 'Purple' }
+                    ]}
+                    className="flex-1"
+                  />
                   <div 
                     className="w-12 h-12 rounded-lg border-2 border-gray-300"
                     style={{ backgroundColor: textOptions.fontColor }}
@@ -421,18 +423,18 @@ const ThumbnailGenerator = () => {
                 <div className="space-y-4 pl-6 border-l-2 border-primary/30">
                   <div>
                     <label className="block mb-2 text-sm font-medium text-gray-900">Background Color</label>
-                    <select
+                    <CustomSelect
                       value={textOptions.backgroundColor}
                       onChange={(e) => setTextOptions({ ...textOptions, backgroundColor: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-gray-900 bg-white"
-                    >
-                      <option value="black">Black</option>
-                      <option value="white">White</option>
-                      <option value="red">Red</option>
-                      <option value="blue">Blue</option>
-                      <option value="green">Green</option>
-                      <option value="gray">Gray</option>
-                    </select>
+                      options={[
+                        { value: 'black', label: 'Black' },
+                        { value: 'white', label: 'White' },
+                        { value: 'red', label: 'Red' },
+                        { value: 'blue', label: 'Blue' },
+                        { value: 'green', label: 'Green' },
+                        { value: 'gray', label: 'Gray' }
+                      ]}
+                    />
                   </div>
 
                   <div>

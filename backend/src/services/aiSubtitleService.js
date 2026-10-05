@@ -17,10 +17,12 @@ ffmpeg.setFfprobePath(ffprobePath);
 const YT_DLP_PATH = 'yt-dlp';
 const WORK_DIR = path.join(__dirname, '..', 'temp', 'ai-subtitles');
 const OUTPUT_DIR = path.join(__dirname, '..', 'temp', 'outputs');
+const FONTS_DIR = path.join(__dirname, '..', 'assets', 'fonts');
 
 function ensureDirs() {
   if (!fs.existsSync(WORK_DIR)) fs.mkdirSync(WORK_DIR, { recursive: true });
   if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  if (!fs.existsSync(FONTS_DIR)) fs.mkdirSync(FONTS_DIR, { recursive: true });
 }
 
 function mapYoutubeAccessError(error, actionLabel = 'process this YouTube video') {
@@ -194,10 +196,45 @@ function pickDownloadedVideoFile(sessionDir) {
 
 function escapePathForSubtitlesFilter(filePath) {
   return filePath
-    .replace(/\\/g, '\\\\')
-    .replace(/:/g, '\\:')
-    .replace(/,/g, '\\,')
-    .replace(/'/g, "\\'");
+    .replace(/\\/g, '/')
+    .replace(/:/g, '\\:');
+}
+
+function detectBestFontForText(text) {
+  if (!text) return 'Noto Sans';
+
+  // Devanagari (Hindi, Marathi, Nepali, Sanskrit, Bhojpuri)
+  if (/[\u0900-\u097F]/.test(text)) {
+    return 'Noto Sans Devanagari';
+  }
+
+  // Other Indic scripts (Bengali, Gujarati, Punjabi, Tamil, Telugu, Kannada, Malayalam, Odia)
+  if (/[\u0980-\u0D7F]/.test(text)) {
+    return 'Nirmala UI';
+  }
+
+  // Arabic / Urdu / Persian / Farsi
+  if (/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text)) {
+    return 'Segoe UI';
+  }
+
+  // Japanese (Hiragana & Katakana)
+  if (/[\u3040-\u309F\u30A0-\u30FF]/.test(text)) {
+    return 'Meiryo';
+  }
+
+  // Chinese (Hanzi)
+  if (/[\u4E00-\u9FFF]/.test(text)) {
+    return 'Microsoft YaHei';
+  }
+
+  // Korean (Hangul)
+  if (/[\uAC00-\uD7AF\u1100-\u11FF]/.test(text)) {
+    return 'Malgun Gothic';
+  }
+
+  // Default English / Latin / Cyrillic / European
+  return 'Noto Sans';
 }
 
 async function getYoutubeVideoInfo(url) {
@@ -337,12 +374,34 @@ async function burnSubtitlesIntoVideo(videoPath, srtPath) {
   const outputPath = path.join(OUTPUT_DIR, outputFilename);
   const subtitlesPathEscaped = escapePathForSubtitlesFilter(srtPath);
 
-  const subtitleFilter = `subtitles='${subtitlesPathEscaped}':force_style='FontName=Arial,FontSize=24,PrimaryColour=&H00FFFFFF,BackColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,Alignment=2,MarginV=34'`;
+  let srtContent = '';
+  try {
+    srtContent = fs.readFileSync(srtPath, 'utf8');
+  } catch (_) {}
+
+  const bestFont = detectBestFontForText(srtContent);
+  const hasFontsDir = fs.existsSync(FONTS_DIR);
+  const fontsDirEscaped = hasFontsDir ? escapePathForSubtitlesFilter(FONTS_DIR) : '';
+  const fontsDirOpt = hasFontsDir ? `:fontsdir='${fontsDirEscaped}'` : '';
+
+  logger.info(`Burning subtitles with font: ${bestFont} (script detected from SRT)`, {
+    srtPath,
+    bestFont,
+    hasFontsDir,
+  });
+
+  const subtitleFilter = `subtitles='${subtitlesPathEscaped}'${fontsDirOpt}:force_style='FontName=${bestFont},FontSize=24,PrimaryColour=&H00FFFFFF,BackColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,Alignment=2,MarginV=34'`;
 
   await new Promise((resolve, reject) => {
     ffmpeg(videoPath)
       .videoFilters(subtitleFilter)
-      .outputOptions(['-c:a copy', '-movflags +faststart'])
+      .outputOptions([
+        '-c:v libx264',
+        '-pix_fmt yuv420p',
+        '-c:a aac',
+        '-b:a 128k',
+        '-movflags +faststart',
+      ])
       .output(outputPath)
       .on('end', resolve)
       .on('error', reject)

@@ -34,9 +34,20 @@
   border-radius: 0.5rem;
   padding: 0.75rem 1.25rem;
   font-weight: 600;
-  transition: background-color 150ms ease, box-shadow 150ms ease;
+  cursor: pointer;
+  transition: all 150ms ease;
 }
-.btn-primary:hover { background-color: var(--color-primary-600); }
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-primary-600);
+  transform: translateY(-1px);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btn-secondary {
   background-color: #f3f4f6;
@@ -44,9 +55,16 @@
   border-radius: 0.5rem;
   padding: 0.75rem 1.25rem;
   font-weight: 600;
-  transition: background-color 150ms ease;
+  cursor: pointer;
+  transition: all 150ms ease;
 }
-.btn-secondary:hover { background-color: #e5e7eb; }
+.btn-secondary:hover:not(:disabled) {
+  background-color: #e5e7eb;
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btn-danger {
   background-color: #ef4444;
@@ -54,9 +72,12 @@
   border-radius: 0.5rem;
   padding: 0.75rem 1.25rem;
   font-weight: 600;
-  transition: background-color 150ms ease, box-shadow 150ms ease;
+  cursor: pointer;
+  transition: all 150ms ease;
 }
-.btn-danger:hover { background-color: #dc2626; }
+.btn-danger:hover:not(:disabled) {
+  background-color: #dc2626;
+}
 .btn-danger:disabled { 
   opacity: 0.5;
   cursor: not-allowed;
@@ -69,10 +90,15 @@
   border-radius: 0.75rem;
   padding: 1rem 2rem;
   font-weight: 600;
-  transition: background-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+  cursor: pointer;
+  transition: all 150ms ease;
 }
-.btn-outline-primary:hover {
+.btn-outline-primary:hover:not(:disabled) {
   background-color: var(--color-primary-50);
+}
+.btn-outline-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Gradient helper using theme */
@@ -214,11 +240,47 @@ body {
   html {
     @apply font-sans;
   }
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  input[type="button"]:disabled,
+  input[type="submit"]:disabled,
+  input[type="reset"]:disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* Universal Button Hover Cursor Override */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+.cursor-pointer,
+select,
+summary {
+  cursor: pointer !important;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+input[type="button"]:disabled,
+input[type="submit"]:disabled,
+input[type="reset"]:disabled,
+.cursor-not-allowed {
+  cursor: not-allowed !important;
 }
 
 /* Scoped dark-mode overrides for protected web app pages */
 .web-theme-dark {
   background: #000;
+  color-scheme: dark;
 }
 
 .web-theme-dark .min-h-screen {
@@ -296,7 +358,21 @@ body {
   background-color: #0f141d !important;
   color: #e5e7eb !important;
   border-color: #2b3445 !important;
+  color-scheme: dark !important;
 }
+
+/* Global safety fallback for native OS select options */
+.web-theme-dark select option,
+.web-theme-dark select optgroup,
+.web-theme-dark option,
+.dark select option,
+.dark select optgroup,
+.dark option,
+select option {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
 
 .web-theme-dark input::placeholder,
 .web-theme-dark textarea::placeholder {
@@ -306,3 +382,38 @@ body {
 .web-theme-dark .text-black {
   color: #e5e7eb !important;
 }
+
+/* Custom compact scrollbar for side-by-side cards */
+.custom-clean-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.custom-clean-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-clean-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-clean-scroll::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.35);
+  border-radius: 9999px;
+}
+
+.custom-clean-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+.web-theme-dark .custom-clean-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.web-theme-dark .custom-clean-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.web-theme-dark .custom-clean-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}

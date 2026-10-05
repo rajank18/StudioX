@@ -31,6 +31,11 @@ const WebLayout = () => {
     return () => window.removeEventListener('studiox-theme-change', onThemeUpdated);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
+  }, [isDarkMode]);
+
   // Bootstrap: ensure the signed-in user exists in backend DB
   useEffect(() => {
     (async () => {
