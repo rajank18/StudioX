@@ -43,7 +43,7 @@ const WebLayout = () => {
         if (!user?.id) return; // wait until Clerk user is loaded
         const token = await getToken();
         if (!token) return; // wait until token is available
-        
+
         const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress;
         await fetch(`${API_BASE_URL}/api/users/me`, {
           headers: {

@@ -256,25 +256,57 @@ body {
   }
 }
 
-/* Universal Button Hover Cursor Override */
-button:not(:disabled),
-[role="button"]:not(:disabled),
-input[type="button"]:not(:disabled),
-input[type="submit"]:not(:disabled),
-input[type="reset"]:not(:disabled),
-.cursor-pointer,
+/* Universal Button & Clickable Element Cursor */
+button,
+button *,
+[role="button"],
+[role="button"] *,
+a.button,
+a[role="button"],
+.btn-primary,
+.btn-primary *,
+.btn-secondary,
+.btn-secondary *,
+.btn-danger,
+.btn-danger *,
+.btn-outline-primary,
+.btn-outline-primary *,
+[class*="btn-"],
+[class*="btn-"] *,
+input[type="button"],
+input[type="button"] *,
+input[type="submit"],
+input[type="submit"] *,
+input[type="reset"],
+input[type="reset"] *,
+label[for],
+label.cursor-pointer,
 select,
-summary {
+summary,
+.cursor-pointer,
+.cursor-pointer * {
   cursor: pointer !important;
 }
 
+/* Disabled states override cursor to not-allowed */
 button:disabled,
+button:disabled *,
 [role="button"][aria-disabled="true"],
+[role="button"][aria-disabled="true"] *,
 input[type="button"]:disabled,
+input[type="button"]:disabled *,
 input[type="submit"]:disabled,
+input[type="submit"]:disabled *,
 input[type="reset"]:disabled,
-.cursor-not-allowed {
+input[type="reset"]:disabled *,
+.disabled,
+.disabled *,
+[disabled],
+[disabled] *,
+.cursor-not-allowed,
+.cursor-not-allowed * {
   cursor: not-allowed !important;
+  pointer-events: auto !important;
 }
 
 /* Scoped dark-mode overrides for protected web app pages */
@@ -376,10 +408,17 @@ select option {
 
 .web-theme-dark input::placeholder,
 .web-theme-dark textarea::placeholder {
-  color: #7f8aa0 !important;
+  color: #94a3b8 !important;
+  opacity: 1 !important;
 }
 
-.web-theme-dark .text-black {
+.web-theme-dark input,
+.web-theme-dark textarea {
+  color: #f3f4f6 !important;
+}
+
+.web-theme-dark .text-black,
+.web-theme-dark .\!text-black {
   color: #e5e7eb !important;
 }
 

@@ -197,13 +197,15 @@ const AiReelCutter = () => {
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">YouTube URL</label>
               <div className="relative">
-                <LinkIcon className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <LinkIcon className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
                   type="url"
                   value={ytUrl}
                   onChange={(event) => setYtUrl(event.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-black !text-black px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-gray-900 placeholder:text-gray-400"
                 />
               </div>
             </div>
@@ -244,7 +246,7 @@ const AiReelCutter = () => {
                 max="20"
                 value={options.num_reels}
                 onChange={(event) => setOptions((prev) => ({ ...prev, num_reels: Number(event.target.value) || 5 }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${isDarkMode ? 'text-white' : 'text-black'}`"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-gray-900"
               />
             </div>
 
