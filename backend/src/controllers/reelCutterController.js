@@ -166,14 +166,33 @@ async function runJob(jobId) {
 
         log('stage change', { stage, pct, done, error });
 
-        setJob(jobId, {
-          status: done ? (error ? 'failed' : 'completed') : 'running',
-          stage,
-          pct,
-          done,
-          error,
-        });
+        if (error) {
+          setJob(jobId, {
+            status: 'failed',
+            stage: 'error',
+            pct: 100,
+            done: true,
+            error,
+          });
+        } else if (done) {
+          setJob(jobId, {
+            status: 'running',
+            stage: 'packaging',
+            pct: 95,
+            done: false,
+            error: null,
+          });
+        } else {
+          setJob(jobId, {
+            status: 'running',
+            stage,
+            pct: Math.min(pct, 90),
+            done: false,
+            error: null,
+          });
+        }
       },
+
       onError: (streamError) => {
         streamHealthy = false;
         log('progress stream degraded', streamError);

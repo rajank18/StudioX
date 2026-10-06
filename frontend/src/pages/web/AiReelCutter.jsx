@@ -15,9 +15,11 @@ const STAGE_LABELS = {
   'health-check': 'Health Check',
   processing: 'Processing',
   'processing (progress stream degraded)': 'Processing (Fallback)',
+  packaging: 'Packaging & Saving ZIP',
   done: 'Done',
   error: 'Error',
 };
+
 
 const AiReelCutter = () => {
   const { getToken } = useAuth();
@@ -125,8 +127,15 @@ const AiReelCutter = () => {
     if (!jobId) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/reel-cutter/download/${jobId}`);
-      if (!response.ok) throw new Error('Failed to download reel ZIP');
+      const downloadEndpoint = job?.output?.downloadUrl
+        ? `${API_BASE_URL}${job.output.downloadUrl}`
+        : `${API_BASE_URL}/api/reel-cutter/download/${jobId}`;
+
+      const response = await fetch(downloadEndpoint);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Failed to download reel ZIP');
+      }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -141,6 +150,7 @@ const AiReelCutter = () => {
       setError(err.message || 'Failed to download reels ZIP');
     }
   };
+
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -343,7 +353,7 @@ const AiReelCutter = () => {
           </div>
         )}
 
-        {job?.status === 'completed' && (
+        {job?.status === 'completed' && Boolean(job?.output?.filename) && (
           <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3">
             <h3 className="font-medium text-green-900">Reels are ready</h3>
             <p className="text-sm text-green-700">Your reel bundle ZIP has been generated successfully.</p>
@@ -355,6 +365,7 @@ const AiReelCutter = () => {
             </div>
           </div>
         )}
+
 
         {(error || job?.error) && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3">
