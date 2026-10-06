@@ -24,7 +24,15 @@ const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
-const DEFAULT_LOCAL_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const DEFAULT_LOCAL_ORIGINS = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5174',
+  'https://thestudiox.vercel.app',
+  'https://studio-x-beige.vercel.app',
+];
 
 const parseAllowedOrigins = (origins) => {
   const exactOrigins = [];
@@ -184,6 +192,7 @@ app.use('/api/thumbnail', thumbnailRoutes);
 app.use('/api/ai-video-summary', aiVideoSummaryRoutes);
 // AI Subtitle generator routes
 app.use('/api/ai-subtitle', aiSubtitleRoutes);
+app.use('/api/ai-subtitles', aiSubtitleRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
